@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["lib","tool"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Berke DURAK <bd@exhrd.fr>"]
+description = "Reader for IASI NAT files"
+
+[workspace.dependencies]
+anyhow = "1.0.98"
+ndarray = "0.16.1"
+regex = "1.11.1"
+tofas = "0.2.9"
+iasinat-lib = { path = "lib" }

@@ -1,0 +1,12 @@
+[package]
+name = "iasinat-lib"
+edition = "2024"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+ndarray = { workspace = true }
+regex = { workspace = true }
+tofas = { workspace = true }
