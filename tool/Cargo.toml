@@ -9,10 +9,9 @@ iasinat-lib = { workspace = true }
 anyhow = { workspace = true }
 tofas = { workspace = true }
 pico-args = "0.5.0"
-env_logger = "0.11.8"
-simple_logger = "5.0.0"
+simple_logger = { version = "5.0.0", default-features = false }
 log = "0.4.27"
-netcdf = { version = "0.11.0", features = ["ndarray"] }
+netcdf = { version = "0.11.0", default-features = false, features = ["ndarray"] }
 ndarray.workspace = true
 
 [[bin]]

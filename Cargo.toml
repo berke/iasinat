@@ -10,7 +10,7 @@ description = "Reader for IASI NAT files"
 
 [workspace.dependencies]
 anyhow = "1.0.98"
-ndarray = "0.16.1"
-regex = "1.11.1"
+ndarray = { version = "0.16.1" }
+regex = { version = "1.11.1", default-features = false, features = ["std"] }
 tofas = "0.2.9"
 iasinat-lib = { path = "lib" }
