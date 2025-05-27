@@ -1,15 +1,5 @@
 // Generic record header
 
-use std::io::{
-    BufReader,
-    Seek,
-    SeekFrom,
-    Read,
-    Write
-};
-
-use ndarray::Array3;
-
 use super::*;
 
 #[derive(Clone,Copy,Default,Debug)]

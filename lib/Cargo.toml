@@ -7,6 +7,7 @@ description.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+log = { workspace = true }
 ndarray = { workspace = true }
 regex = { workspace = true }
 tofas = { workspace = true }

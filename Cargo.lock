@@ -71,6 +71,7 @@ name = "iasinat-lib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "log",
  "ndarray",
  "regex",
  "tofas",
