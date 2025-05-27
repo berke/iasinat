@@ -206,6 +206,15 @@ pub struct MdrL1CRad {
 pub struct GiadrL1Eng {
 }
 
+#[derive(Clone)]
+pub struct EumAvhrr {
+    pub clc:[[i8;PN];SNOT],
+    pub lfr:[[i8;PN];SNOT],
+    pub sif:[[i8;PN];SNOT]
+}
+
+pub type Angles = ([[f32;PN];SNOT],[[f32;PN];SNOT]);
+
 pub type NatReader<R> = BufReader<R>;
 
 impl GiadrScaleFactors {
@@ -229,21 +238,21 @@ impl GiadrScaleFactors {
 pub const OMEGA_EARTH : f64 = 7.2921154e-5; // Earth ang. vel. [rad/s] - sidereal
 
 impl Mphr {
-    pub fn read_bin<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
 	let product_name = Self::read_kv_string_at(
-	    &mut rd,rec,20,100,
+	    rd,rec,20,100,
 	    "PRODUCT_NAME")?;
 	let parent_product_name_1 = Self::read_opt_kv_string_at(
-	    &mut rd,rec,120,100,
+	    rd,rec,120,100,
 	    "PARENT_PRODUCT_NAME_1")?;
 	let parent_product_name_2 = Self::read_opt_kv_string_at(
-	    &mut rd,rec,220,100,
+	    rd,rec,220,100,
 	    "PARENT_PRODUCT_NAME_2")?;
 	let parent_product_name_3 = Self::read_opt_kv_string_at(
-	    &mut rd,rec,320,100,
+	    rd,rec,320,100,
 	    "PARENT_PRODUCT_NAME_3")?;
 	let parent_product_name_4 = Self::read_opt_kv_string_at(
-	    &mut rd,rec,420,100,
+	    rd,rec,420,100,
 	    "PARENT_PRODUCT_NAME_4")?;
 	let parent_product_names = [
 	    parent_product_name_1,
@@ -252,129 +261,129 @@ impl Mphr {
 	    parent_product_name_4
 	];
 	let spacecraft_id = Self::read_kv_string_at(
-	    &mut rd,rec,664,36,
+	    rd,rec,664,36,
 	    "SPACECRAFT_ID")?.parse()?;
 
 	let orbit_start : u32 = Self::read_kv_string_at(
-	    &mut rd,rec,1377,38,
+	    rd,rec,1377,38,
 	    "ORBIT_START")?.parse()?;
 	let orbit_end : u32 = Self::read_kv_string_at(
-	    &mut rd,rec,1415,38,
+	    rd,rec,1415,38,
 	    "ORBIT_END")?.parse()?;
 	let semi_major_axis : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1548,44,
+		rd,rec,1548,44,
 		"SEMI_MAJOR_AXIS")?.parse()?;
 
 	let tsp = TimestampParser::new()?;
 	let sensing_start =
 	    tsp.parse(&Self::read_kv_string_at(
-		&mut rd,rec,700,48,
+		rd,rec,700,48,
 		"SENSING_START")?)?;
 	let sensing_end =
 	    tsp.parse(&Self::read_kv_string_at(
-		&mut rd,rec,748,48,
+		rd,rec,748,48,
 		"SENSING_END")?)?;
 	let state_vector_time =
 	    tsp.parse(&Self::read_kv_string_at(
-		&mut rd,rec,1497,51,
+		rd,rec,1497,51,
 		"STATE_VECTOR_TIME")?)?;
 	let eccentricity : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1592,44,
+		rd,rec,1592,44,
 		"ECCENTRICITY")?.parse()?;
 	let inclination : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1636,44,
+		rd,rec,1636,44,
 		"INCLINATION")?.parse()?;
 	let perigee_argument : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1680,44,
+		rd,rec,1680,44,
 		"PERIGEE_ARGUMENT")?.parse()?;
 	let right_ascension : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1724,44,
+		rd,rec,1724,44,
 		"RIGHT_ASCENSION")?.parse()?;
 	let mean_anomaly : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1768,44,
+		rd,rec,1768,44,
 		"MEAN_ANOMALY")?.parse()?;
 	let x_position : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1812,44,
+		rd,rec,1812,44,
 		"X_POSITION")?.parse()?;
 	let y_position : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1856,44,
+		rd,rec,1856,44,
 		"Y_POSITION")?.parse()?;
 	let z_position : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1900,44,
+		rd,rec,1900,44,
 		"Z_POSITION")?.parse()?;
 	let x_velocity : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1944,44,
+		rd,rec,1944,44,
 		"X_VELOCITY")?.parse()?;
 	let y_velocity : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,1988,44,
+		rd,rec,1988,44,
 		"Y_VELOCITY")?.parse()?;
 	let z_velocity : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2032,44,
+		rd,rec,2032,44,
 		"Z_VELOCITY")?.parse()?;
 	let earth_sun_distance_ratio : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2076,44,
+		rd,rec,2076,44,
 		"EARTH_SUN_DISTANCE_RATIO")?.parse()?;
 	let location_tolerance_radial : i64 =
 	    Self::read_kv_string_at(
-		&mut rd,rec,2120,44,
+		rd,rec,2120,44,
 		"LOCATION_TOLERANCE_RADIAL")?.parse()?;
 	let location_tolerance_crosstrack : i64 =
 	    Self::read_kv_string_at(
-		&mut rd,rec,2164,44,
+		rd,rec,2164,44,
 		"LOCATION_TOLERANCE_CROSSTRACK")?.parse()?;
 	let location_tolerance_alongtrack : i64 =
 	    Self::read_kv_string_at(
-		&mut rd,rec,2208,44,
+		rd,rec,2208,44,
 		"LOCATION_TOLERANCE_ALONGTRACK")?.parse()?;
 	let yaw_error : i64 =
 	    Self::read_kv_string_at(
-		&mut rd,rec,2252,44,
+		rd,rec,2252,44,
 		"YAW_ERROR")?.parse()?;
 	let roll_error : i64 =
 	    Self::read_kv_string_at(
-		&mut rd,rec,2296,44,
+		rd,rec,2296,44,
 		"ROLL_ERROR")?.parse()?;
 	let pitch_error : i64 =
 	    Self::read_kv_string_at(
-		&mut rd,rec,2340,44,
+		rd,rec,2340,44,
 		"PITCH_ERROR")?.parse()?;
 	let subsat_latitude_start : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2384,44,
+		rd,rec,2384,44,
 		"SUBSAT_LATITUDE_START")?.parse()?;
 	let subsat_longitude_start : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2428,44,
+		rd,rec,2428,44,
 		"SUBSAT_LONGITUDE_START")?.parse()?;
 	let subsat_latitude_end : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2472,44,
+		rd,rec,2472,44,
 		"SUBSAT_LATITUDE_END")?.parse()?;
 	let subsat_longitude_end : i64 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2516,44,
+		rd,rec,2516,44,
 		"SUBSAT_LONGITUDE_END")?.parse()?;
 	let leap_second : i8 = 
 	    Self::read_kv_string_at(
-		&mut rd,rec,2560,35,
+		rd,rec,2560,35,
 		"LEAP_SECOND")?.parse()?;
 	let leap_second_utc =
 	    if leap_second != 0 {
 		Some(tsp.parse(&Self::read_kv_string_at(
-		    &mut rd,rec,2595,48,
+		    rd,rec,2595,48,
 		    "LEAP_SECOND_UTC")?)?)
 	    } else {
 		None
@@ -427,13 +436,14 @@ impl Mphr {
 	.ok_or_else(|| anyhow!("Missing value for {}",name))
     }
 
-    pub fn read_opt_kv_string_at<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh,
+    pub fn read_opt_kv_string_at<R:Read+Seek>(rd:&mut NatReader<R>,
+					      rec:&Grh,
 					      offset:u64,
 					      size:usize,
 					      name:&str)->
 	Result<Option<String>>
     {
-	rec.seek_to_record(&mut rd,offset)?;
+	rec.seek_to_record(rd,offset)?;
 	let mut u = vec![0;size];
 	rd.read_exact(&mut u)?;
 	let u = String::from_utf8_lossy(&u[..]);
@@ -442,9 +452,9 @@ impl Mphr {
 	    if v == name {
 		let w = w.trim();
 		if w.chars().all(|c| c == 'x') {
-		    return Ok(None)
+		    Ok(None)
 		} else {
-		    return Ok(Some(w.to_string()));
+		    Ok(Some(w.to_string()))
 		}
 	    } else {
 		bail!("Unexpected key {:?}, was expecing {}",v,name);
@@ -454,12 +464,12 @@ impl Mphr {
 	}
     }
 
-    pub fn read_string_at<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh,
+    pub fn read_string_at<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
 				       offset:u64,
 				       size:usize)->
 	Result<String>
     {
-	rec.seek_to_record(&mut rd,offset)?;
+	rec.seek_to_record(rd,offset)?;
 	let mut u = vec![0;size];
 	rd.read_exact(&mut u)?;
 	Ok(String::from_utf8_lossy(&u[..]).to_string())
@@ -467,19 +477,19 @@ impl Mphr {
 }
 
 impl MdrL1CRad {
-    pub fn read_bin<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh,
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
 				 giadr_sf:&GiadrScaleFactors)->Result<Self> {
-	rec.seek_to_record(&mut rd,276777)?;
-	let d_wn : f32 = VInteger4::read_bin(&mut rd)?.into();
+	rec.seek_to_record(rd,276777)?;
+	let d_wn : f32 = VInteger4::read_bin(rd)?.into();
 	let d_wn = d_wn / 100.0;
 
-	rec.seek_to_record(&mut rd,276782)?;
-	let ns_first = i32::read_bin(&mut rd)?;
-	let ns_last = i32::read_bin(&mut rd)?;
+	rec.seek_to_record(rd,276782)?;
+	let ns_first = i32::read_bin(rd)?;
+	let ns_last = i32::read_bin(rd)?;
 
 	let mut values = vec![0;SS*PN*SNOT];
 	for p_value in values.iter_mut() {
-	    *p_value = i16::read_bin(&mut rd)?;
+	    *p_value = i16::read_bin(rd)?;
 	}
 
 	let wn0 : f32 = d_wn * (ns_first - 1) as f32;
@@ -500,8 +510,8 @@ impl MdrL1CRad {
 			 [jsf as usize] as i32).min(ns_last)
 		    {
 			let l = jc - ns_first;
-			rad[[l as usize,i as usize,j as usize]] =
-			    values_3d[[j as usize,i as usize,l as usize]]
+			rad[[l as usize,i,j]] =
+			    values_3d[[j,i,l as usize]]
 			    as f32 * powsf;
 		    }
 		}
@@ -519,19 +529,19 @@ impl MdrL1CRad {
 }
 
 impl MdrL1C {
-    pub fn read_bin<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh,
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
 				 line:i32)->Result<Self> {
-	// rec.seek_to_record(&mut rd)?;
-	let geps_iasi_mode = Self::l1c_get_iasi_mode(&mut rd,rec)?;
-	let geps_sp = Self::l1c_get_sp(&mut rd,rec)?;
-	let geps_ccd = Self::l1c_get_ccd(&mut rd,rec)?;
-	let (lon,lat) = Self::l1c_get_lon_lat(&mut rd,rec)?;
-	let (sza,saa) = Self::l1c_get_sun_angles(&mut rd,rec)?;
-	let (iza,iaa) = Self::l1c_get_metop_angles(&mut rd,rec)?;
-	let flg = Self::l1c_get_flag_qual_3(&mut rd,rec)?;
-	let cds_date = Self::l1c_get_dat_iasi(&mut rd,rec)?;
-	let (clc,lfr,sif) = Self::l1c_get_eum_avhrr(&mut rd,rec)?;
-	let earth_sat_dist = Self::l1c_get_earth_sat_dist(&mut rd,rec)?;
+	// rec.seek_to_record(rd)?;
+	let geps_iasi_mode = Self::l1c_get_iasi_mode(rd,rec)?;
+	let geps_sp = Self::l1c_get_sp(rd,rec)?;
+	let geps_ccd = Self::l1c_get_ccd(rd,rec)?;
+	let (lon,lat) = Self::l1c_get_lon_lat(rd,rec)?;
+	let (sza,saa) = Self::l1c_get_sun_angles(rd,rec)?;
+	let (iza,iaa) = Self::l1c_get_metop_angles(rd,rec)?;
+	let flg = Self::l1c_get_flag_qual_3(rd,rec)?;
+	let cds_date = Self::l1c_get_dat_iasi(rd,rec)?;
+	let EumAvhrr { clc,lfr,sif } = Self::l1c_get_eum_avhrr(rd,rec)?;
+	let earth_sat_dist = Self::l1c_get_earth_sat_dist(rd,rec)?;
 	Ok(Self {
 	    line,
 	    geps_iasi_mode,
@@ -552,78 +562,76 @@ impl MdrL1C {
 	})
     }
 
-    fn l1c_get_earth_sat_dist<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->Result<u32> {
-	rec.seek_to_record(&mut rd,276773)?;
+    fn l1c_get_earth_sat_dist<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<u32> {
+	rec.seek_to_record(rd,276773)?;
 	u32::read_bin(rd)
     }
 
     fn l1c_get_eum_avhrr<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->
-	Result<([[i8;PN];SNOT],
-		[[i8;PN];SNOT],
-		[[i8;PN];SNOT])>
+	Result<EumAvhrr>
     {
-	rec.seek_to_record(&mut rd,2728548)?;
+	rec.seek_to_record(rd,2728548)?;
 	// XXX: Order
 	let clc = <[[i8;PN];SNOT]>::read_bin(&mut rd)?;
 	let lfr = <[[i8;PN];SNOT]>::read_bin(&mut rd)?;
 	let sif = <[[i8;PN];SNOT]>::read_bin(&mut rd)?;
-	Ok((clc,lfr,sif))
+	Ok(EumAvhrr { clc,lfr,sif })
     }
 
-    fn l1c_get_dat_iasi<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->
+    fn l1c_get_dat_iasi<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->
 	Result<[ShortCdsTime;SNOT]>
     {
-	rec.seek_to_record(&mut rd,9122)?;
-	Ok(<[ShortCdsTime;SNOT]>::read_bin(&mut rd)?)
+	rec.seek_to_record(rd,9122)?;
+	<[ShortCdsTime;SNOT]>::read_bin(rd)
     }
 
-    fn l1c_get_flag_qual_3<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->
+    fn l1c_get_flag_qual_3<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->
 	Result<[[[i8;SB];PN];SNOT]>
     {
-	rec.seek_to_record(&mut rd,255260)?;
-	Ok(<[[[i8;SB];PN];SNOT]>::read_bin(&mut rd)?)
+	rec.seek_to_record(rd,255260)?;
+	<[[[i8;SB];PN];SNOT]>::read_bin(rd)
     }
 
-    fn l1c_get_iasi_mode<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->Result<i32> {
-	rec.seek_to_record(&mut rd,24)?;
-	let vali2_b = i16::read_bin(&mut rd)?;
+    fn l1c_get_iasi_mode<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<i32> {
+	rec.seek_to_record(rd,24)?;
+	let vali2_b = i16::read_bin(rd)?;
 	let vali2 = vali2_b as i32;
 	Ok(vali2.reverse_bits()) // XXX
     }
 
-    fn l1c_get_sp<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->Result<[i32;SNOT]> {
-	rec.seek_to_record(&mut rd,9380)?;
-	Ok(<[i32;SNOT]>::read_bin(&mut rd)?)
+    fn l1c_get_sp<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<[i32;SNOT]> {
+	rec.seek_to_record(rd,9380)?;
+	<[i32;SNOT]>::read_bin(rd)
     }
 
-    fn l1c_get_ccd<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->Result<[i8;SNOT]> {
-	rec.seek_to_record(&mut rd,9350)?;
-	Ok(<[i8;SNOT]>::read_bin(&mut rd)?)
+    fn l1c_get_ccd<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<[i8;SNOT]> {
+	rec.seek_to_record(rd,9350)?;
+	<[i8;SNOT]>::read_bin(rd)
     }
 
     fn l1c_get_lon_lat<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->
-	Result<([[f32;PN];SNOT],[[f32;PN];SNOT])>
+	Result<Angles>
     {
 	Self::l1c_get_angles_at(rd,rec,255893)
     }
 
     fn l1c_get_sun_angles<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->
-	Result<([[f32;PN];SNOT],[[f32;PN];SNOT])>
+	Result<Angles>
     {
 	Self::l1c_get_angles_at(rd,rec,263813)
     }
 
     fn l1c_get_metop_angles<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->
-	Result<([[f32;PN];SNOT],[[f32;PN];SNOT])>
+	Result<Angles>
     {
 	Self::l1c_get_angles_at(rd,rec,256853)
     }
 
-    fn l1c_get_angles_at<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh,offset:u64)
-				    ->Result<([[f32;PN];SNOT],[[f32;PN];SNOT])>
+    fn l1c_get_angles_at<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,offset:u64)
+				      ->Result<Angles>
     {
-	rec.seek_to_record(&mut rd,offset)?;
-	let values = <[i32;2*PN*SNOT]>::read_bin(&mut rd)?;
+	rec.seek_to_record(rd,offset)?;
+	let values = <[i32;2*PN*SNOT]>::read_bin(rd)?;
 	let mut a = [[0.0;PN];SNOT];
 	let mut b = [[0.0;PN];SNOT];
 	for i in 0..SNOT {
@@ -662,13 +670,13 @@ impl From<VInteger4> for f32 {
 }
 
 impl BinaryIoBig for ShortCdsTime {
-    fn write_bin<W:Write>(&self,_wr:W)->Result<()> {
+    fn write_bin<W:Write>(&self,_wr:&mut W)->Result<()> {
 	todo!()
     }
 
-    fn read_bin<R:Read>(mut rd:R)->Result<Self> {
-	let day = i16::read_bin(&mut rd)?;
-	let msec = i32::read_bin(&mut rd)?;
+    fn read_bin<R:Read>(rd:&mut R)->Result<Self> {
+	let day = i16::read_bin(rd)?;
+	let msec = i32::read_bin(rd)?;
 	Ok(Self {
 	    day,
 	    msec
@@ -677,18 +685,18 @@ impl BinaryIoBig for ShortCdsTime {
 }
 
 impl Grh {
-    pub fn read_recs<R:Read+Seek>(mut rd:&mut NatReader<R>)->Result<Vec<Self>> {
+    pub fn read_recs<R:Read+Seek>(rd:&mut NatReader<R>)->Result<Vec<Self>> {
 	let mut recs = Vec::new();
 	let len = rd.seek(SeekFrom::End(0))?;
 	rd.seek(SeekFrom::Start(0))?;
 	while rd.stream_position()? < len {
-	    let grh = Self::read_bin(&mut rd)?;
+	    let grh = Self::read_bin(rd)?;
 	    recs.push(grh);
 	}
 	Ok(recs)
     }
 
-    pub fn scan_recs<R,T,F>(mut rd:&mut NatReader<R>,f:F)->Result<Option<T>>
+    pub fn scan_recs<R,T,F>(rd:&mut NatReader<R>,f:F)->Result<Option<T>>
     where
 	R:Read+Seek,
 	F:Fn(Self)->Result<Option<T>>
@@ -696,7 +704,7 @@ impl Grh {
 	let len = rd.seek(SeekFrom::End(0))?;
 	rd.seek(SeekFrom::Start(0))?;
 	while rd.stream_position()? < len {
-	    let grh = Self::read_bin(&mut rd)?;
+	    let grh = Self::read_bin(rd)?;
 	    if let Some(x) = f(grh)? {
 		return Ok(Some(x));
 	    }

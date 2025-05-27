@@ -81,17 +81,17 @@ impl TimestampParser {
 	Self::parse_caps(&caps,1)
     }
 
-    fn parse_caps_gd<'a>(caps:&regex::Captures<'a>,i:usize)->
+    fn parse_caps_gd(caps:&regex::Captures<'_>,i:usize)->
 	Result<GregorianDate>
     {
-	let year : i32 = caps.get(i + 0).unwrap().as_str().parse()?;
+	let year : i32 = caps.get(i    ).unwrap().as_str().parse()?;
 	let month : i32 = caps.get(i + 1).unwrap().as_str().parse()?;
 	let day : i32 = caps.get(i + 2).unwrap().as_str().parse()?;
 	let gd = GregorianDate::new(year,month,day)?;
 	Ok(gd)
     }
 
-    fn parse_caps<'a>(caps:&regex::Captures<'a>,i:usize)->
+    fn parse_caps(caps:&regex::Captures<'_>,i:usize)->
 	Result<Timestamp>
     {
 	let gd = Self::parse_caps_gd(caps,i)?;
