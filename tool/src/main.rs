@@ -125,6 +125,7 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
     mkv!(saa,f32);
     mkv!(iza,f32);
     mkv!(iaa,f32);
+    mkv!(clc,i8);
     mkv!(lfr,i8);
     mkv!(sif,i8);
 
@@ -180,6 +181,7 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
 			    setv!(iaa);
 			    setv!(lfr);
 			    setv!(sif);
+			    setv!(clc);
 
 			    for k in 0..NFLG {
 				flg[[iline,j,i,k]] = l1c.flg[j][i][k];
@@ -295,6 +297,7 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
     putv!(saa,f32,"degree","sun azimuth angle");
     putv!(iza,f32,"degree","observer zenith angle");
     putv!(iaa,f32,"degree","observer azimuth angle");
+    putv!(clc,i8,"percent","cloud cover");
     putv!(lfr,i8,"percent","land fraction");
     putv!(sif,i8,"?","fluorescence");
 
@@ -316,9 +319,10 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
     var.put(esds.view(),..)?;
 
     trace!("Adding radiance");
-    let mut var = fd_out.add_variable::<f32>("radiance",&["line","snot","pn","chan"])?;
+    let mut var = fd_out.add_variable::<f32>("radiance",
+					     &["line","snot","pn","chan"])?;
     var.put_attribute("units","W/m^2/sr/(cm^-1)")?;
-    var.put_attribute("long_name","spectral radiance")?;
+    var.put_attribute("long_name","spectral radiance from GS1cSpect")?;
     var.put(rads.view(),(..,..,..,..))?;
 
     trace!("Adding wavenumber");
