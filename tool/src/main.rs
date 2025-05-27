@@ -132,9 +132,7 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
     let mut rads : Array4<f32> = Array4::zeros((nline,SNOT,PN,nchan));
     let mut esds : Array1<f64> = Array1::zeros(nline);
 
-    const NFLG : usize = 3;
-
-    let mut flg : Array4<i8> = Array4::zeros((nline,SNOT,PN,NFLG));
+    let mut flg : Array4<i8> = Array4::zeros((nline,SNOT,PN,SB));
     let mut t0s : Array2<f64> = Array2::zeros((nline,SNOT));
     let mut wn0_d_wn : Option<(f32,f32)> = None;
     let mut mphr : Option<Mphr> = None;
@@ -183,72 +181,9 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
 			    setv!(sif);
 			    setv!(clc);
 
-			    for k in 0..NFLG {
+			    for k in 0..SB {
 				flg[[iline,j,i,k]] = l1c.flg[j][i][k];
 			    }
-
-			    // let est = spe.estimate(lon as f64,
-			    // 			   lat as f64,
-			    // 			   oza as f64,
-			    // 			   oaz as f64)?;
-
-			    // let el = Ellipse::from_estimate(&self.ec,
-			    // 				    self.hca_ifov as f64,
-			    // 				    &est)?;
-
-			    // let footprint =
-			    // 	if self.rough_footprints {
-			    // 	    let footprint = EllipticalFootprint::from_estimate(
-			    // 		self.hca_ifov as f64,
-			    // 		&est);
-			    // 	    ste_dcenter.add(el.center.norm2());
-			    // 	    ste_da.add(abs(el.a - footprint.a));
-			    // 	    ste_db.add(abs(el.b - footprint.b));
-			    // 	    ste_dpa.add(
-			    // 		abs((el.theta - footprint.pa + 90.0)
-			    // 		    .rem_euclid(180.0) - 90.0));
-			    // 	    if false {
-			    // 		println!("center = {}",el.center);
-			    // 		println!("a      = {:14.6e}",el.a);
-			    // 		println!("a'     = {:14.6e}",footprint.a);
-			    // 		println!("b      = {:14.6e}",el.b);
-			    // 		println!("b'     = {:14.6e}",footprint.b);
-			    // 		println!("theta  = {:+6.3}",el.theta);
-			    // 		println!("theta' = {:+6.3}",footprint.pa);
-			    // 	    }
-			    // 	    footprint
-			    // 	} else {
-			    // 	    EllipticalFootprint {
-			    // 		a:el.a,
-			    // 		b:el.b,
-			    // 		pa:el.theta
-			    // 	    }
-			    // 	};
-
-			    // let aux = IasiAux {
-			    // 	flg,
-			    // 	lfr,
-			    // 	sif,
-			    // 	p_sat:est.p_sat
-			    // };
-			    // let obs = Observation {
-			    // 	lat,
-			    // 	lon,
-			    // 	t0,
-			    // 	oza,
-			    // 	sza,
-			    // 	saz,
-			    // 	oaz,
-			    // 	cf,
-			    // 	alt:None,
-			    // 	footprint,
-			    // 	meas:IasiMeas::Aux(aux)
-			    // };
-			    // if filter(&id,&obs) {
-			    // 	let obs = meas_updater
-			    // 	    .update(&mut br,rec,sf,&id,obs)?;
-			    // 	product.insert(id,obs);
-			    // }
 
 			    wn0_d_wn = Some((l1c_rad.wn0,l1c_rad.d_wn));
 			    for k in 0..nchan {
@@ -278,58 +213,61 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
     fd_out.add_dimension("line",nline)?;
     fd_out.add_dimension("snot",SNOT)?;
     fd_out.add_dimension("pn",PN)?;
-    fd_out.add_dimension("flg",NFLG)?;
+    fd_out.add_dimension("sb",SB)?;
     fd_out.add_dimension("chan",nchan)?;
 
     macro_rules! putv {
 	($x:ident,$t:ty,$units:expr,$long:expr) => {
 	    trace!("Adding {}",stringify!($x));
-	    let mut var = fd_out.add_variable::<$t>(stringify!($x),&["line","snot","pn"])?;
+	    let mut var = fd_out.add_variable::<$t>(
+		stringify!($x),&["line","snot","pn"])?;
 	    var.put_attribute("units",$units)?;
 	    var.put_attribute("long_name",$long)?;
 	    var.put($x.view(),(..,..,..))?;
 	}
     }
 
-    putv!(lon,f32,"degree","longitude of pixel center");
-    putv!(lat,f32,"degree","latitude of pixel center");
-    putv!(sza,f32,"degree","sun zenith angle");
-    putv!(saa,f32,"degree","sun azimuth angle");
-    putv!(iza,f32,"degree","observer zenith angle");
-    putv!(iaa,f32,"degree","observer azimuth angle");
-    putv!(clc,i8,"percent","cloud cover");
-    putv!(lfr,i8,"percent","land fraction");
-    putv!(sif,i8,"?","fluorescence");
+    putv!(lon,f32,"degree","longitude of pixel center [GGeoSondLoc]");
+    putv!(lat,f32,"degree","latitude of pixel center [GGeoSondLoc]");
+    putv!(sza,f32,"degree","sun zenith angle [GGeoSondAnglesSUN]");
+    putv!(saa,f32,"degree","sun azimuth angle [GGeoSondAnglesSUN]");
+    putv!(iza,f32,"degree","observer zenith angle [GGeoSondAnglesMETOP]");
+    putv!(iaa,f32,"degree","observer azimuth angle [GGeoSondAnglesMETOP]");
+    putv!(clc,i8,"percent","cloud cover [GEUMAvhrr1BCldFrac]");
+    putv!(lfr,i8,"percent","land fraction [GEUMAvhrr1BLandFrac]");
+    putv!(sif,i8,"bitfield","quality indicator and snow/ice flag [GEUMAvhrr1BQual]");
 
     trace!("Adding flag");
-    let mut var = fd_out.add_variable::<i8>("flag",&["line","snot","pn","flg"])?;
-    var.put_attribute("long_name","quality flags per band")?;
+    let mut var = fd_out.add_variable::<i8>("flag",&["line","snot","pn","sb"])?;
+    var.put_attribute("long_name","quality flags per band [GQisFlagQual]")?;
     var.put(flg.view(),(..,..,..,..))?;
 
     trace!("Adding time");
     let mut var = fd_out.add_variable::<f64>("time",&["line","snot"])?;
     var.put_attribute("units","second")?;
-    var.put_attribute("long_name","seconds since Unix epoch")?;
+    var.put_attribute("long_name","seconds since Unix epoch [GEPSDatIasi]")?;
     var.put(t0s.view(),(..,..))?;
 
     trace!("Adding earth_sat_dist");
     let mut var = fd_out.add_variable::<f64>("earth_sat_dist",&["line"])?;
     var.put_attribute("units","meter")?;
-    var.put_attribute("long_name","distance from Earth center to satellite")?;
+    var.put_attribute("long_name","distance from Earth center to satellite \
+				   [EARTH_SATELLITE_DISTANCE]")?;
     var.put(esds.view(),..)?;
 
     trace!("Adding radiance");
     let mut var = fd_out.add_variable::<f32>("radiance",
 					     &["line","snot","pn","chan"])?;
     var.put_attribute("units","W/m^2/sr/(cm^-1)")?;
-    var.put_attribute("long_name","spectral radiance from GS1cSpect")?;
+    var.put_attribute("long_name","spectral radiance [GS1cSpect]")?;
     var.put(rads.view(),(..,..,..,..))?;
 
     trace!("Adding wavenumber");
     let wns = Array1::from_shape_fn(nchan,|k| wn0 + k as f32*d_wn);
     let mut var = fd_out.add_variable::<f32>("wavenumber",&["chan"])?;
     var.put_attribute("units","cm^-1")?;
-    var.put_attribute("long_name","channel central wavenumber")?;
+    var.put_attribute("long_name","channel central wavenumber \
+				   [IDefNsFirst,IDefSpectrDWn]")?;
     var.put(wns.view(),..)?;
 
     trace!("Adding metadata");
