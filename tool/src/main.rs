@@ -22,15 +22,15 @@ use log::{
 
 use pico_args::Arguments;
 
-use tofas::{
-    calendar::GregorianDate,
-};
+const PROGRAM_NAME : &str = "iasinat by ExH R&D S.A.R.L. <bd@exhrd.fr>";
 
 fn main()->Result<()> {
     let mut args = Arguments::from_env();
 
     if args.contains("-h") || args.contains("--help") {
 	do_help(args)
+    } else if args.contains("--version") {
+	do_version(args)
     } else {
 	let verbose = args.contains("--verbose");
 	simple_logger::SimpleLogger::new()
@@ -38,7 +38,9 @@ fn main()->Result<()> {
 			else { log::LevelFilter::Info })
 	    .init()?;
 	match args.subcommand()?.as_deref() {
-	    Some("nat2nc") => do_nat2nc(args),
+	    Some("nat1c-to-netcdf") => do_nat1c_to_netcdf(args),
+	    Some("nat2-to-netcdf") => do_nat2_to_netcdf(args),
+	    Some("list-recs") => do_list_recs(args),
 	    Some("help") => do_help(args),
 	    Some(cmd) => bail!("Unknown subcommand {}; try --help",cmd),
 	    None => bail!("No subcommand specified; try --help")
@@ -46,27 +48,49 @@ fn main()->Result<()> {
     }
 }
 
-const HELP : &str = r"Subcommands:
-nat2nc - Converts a IASI L1C NAT file to a NetCDF file
-         Mandatory arguments:
-            --input  IN.nat
-                     Path of input IASI L1C file in native (NAT) format
-            --output OUT.nc
-                     Path of output netCDF file
-
-         Optional arguments:
-            Channel selection
-
-            By default, all measurement channels will be included in the output.
-            This can be restricted using the following options:
-            --ichan0 CH
-                     Zero-based index of beginning of IASI channel range
-            --ichan1 CH
-                     Zero-based index of end of IASI channel range (exclusive)
+const HELP : &str = r"Subcommands
+  nat1c-to-netcdf
+     Converts a IASI L1C NAT file to a NetCDF file
+     Mandatory arguments:
+        --input  IN.nat
+                 Path of input IASI L1C file in native (NAT) format
+        --output OUT.nc
+                 Path of output netCDF file
+  
+     Optional arguments:
+        Channel selection
+  
+        By default, all measurement channels will be included in the output.
+        This can be restricted using the following options:
+        --ichan0 CH
+                 Zero-based index of beginning of IASI channel range
+        --ichan1 CH
+                 Zero-based index of end of IASI channel range (exclusive)
+  
+  nat2-to-netcdf
+     Converts a IASI L2 NAT file to a NetCDF file
+     Mandatory arguments:
+        --input  IN.nat
+                 Path of input IASI L1C file in native (NAT) format
+        --output OUT.nc
+                 Path of output netCDF file
+  
+  list-recs
+     Lists the records of a NAT file
+     Mandatory arguments:
+       --input  IN.nat
+                Path of input IASI NAT file (L1C or L2)
 ";
 
+fn do_version(_args:Arguments)->Result<()> {
+    println!("{}",PROGRAM_NAME);
+    println!("  Commit: {}",env!("IASINAT_COMMIT"));
+    println!("  Build date: {}",env!("IASINAT_BUILD_TIMESTAMP"));
+    Ok(())
+}
+
 fn do_help(_args:Arguments)->Result<()> {
-    println!("usage: {} SUBCOMMAND ARGS...",
+    println!("Usage: {} SUBCOMMAND ARGS...",
 	     std::env::args().next().unwrap());
     println!();
     println!("{}",HELP);
@@ -76,7 +100,59 @@ fn do_help(_args:Arguments)->Result<()> {
 use iasinat_lib::prelude::*;
 use netcdf as nc;
 
-fn do_nat2nc(mut args:Arguments)->Result<()> {
+fn do_list_recs(mut args:Arguments)->Result<()> {
+    let input_path : OsString = args.value_from_str("--input")?;
+
+    let rest = args.finish();
+    if !rest.is_empty() {
+	bail!("Unhandled arguments: {:?}; try --help",rest);
+    }
+
+    info!("Opening NAT file {:?}",input_path);
+    let fd_in = File::open(&input_path)?;
+    let mut br = BufReader::new(fd_in);
+    let recs = Grh::read_recs(&mut br)?;
+    println!("{:8} {:8} {:3} {:26} {:26} {:8} {:16}",
+	     "Record#","Kind","Ins","Start","End","Position","Size");
+    for (irec,rec) in recs.iter().enumerate() {
+	let Grh { record_kind,
+		  instrument_group,
+		  record_size,
+		  record_start_time,
+		  record_end_time,
+		  record_pos } = *rec;
+	let t1 = record_start_time.to_gregorian_hms()?;
+	let t2 = record_end_time.to_gregorian_hms()?;
+	println!("{:8} {:8} {:3} {:26} {:26} {:8} {:16}",
+		 irec,
+		 format!("{}",record_kind),
+		 instrument_group,
+		 t1,
+		 t2,
+		 record_pos,
+		 record_size,
+	);
+    }
+    Ok(())
+}
+
+fn add_metadata(fd_out:&mut nc::FileMut,mphr:&Mphr,subcommand:&str)->Result<()> {
+    trace!("Adding metadata");
+    let _attr = fd_out.add_attribute("product_name",mphr.product_name.clone())?;
+    let _conv_name = fd_out.add_attribute("converter_name",
+					  PROGRAM_NAME.to_string());
+    let _conv_subcommand = fd_out.add_attribute("converter_subcommand",
+						subcommand.to_string());
+    let _conv_commit = fd_out.add_attribute(
+	"converter_commit",
+	env!("IASINAT_COMMIT").to_string());
+    let _conv_stamp = fd_out.add_attribute(
+	"converter_build_timestamp",
+	env!("IASINAT_BUILD_TIMESTAMP").to_string());
+    Ok(())
+}
+
+fn do_nat1c_to_netcdf(mut args:Arguments)->Result<()> {
     let input_path : OsString = args.value_from_str("--input")?;
     let output_path : OsString = args.value_from_str("--output")?;
 
@@ -92,10 +168,6 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
     let fd_in = File::open(&input_path)?;
     let mut br = BufReader::new(fd_in);
     let recs = Grh::read_recs(&mut br)?;
-    let gd2000 = GregorianDate::new(2000,1,1)?;
-    let gd_unix = GregorianDate::new(1970,1,1)?;
-    let (jd2000_1,jd2000_2) = gd2000.to_julian();
-    let (jd_unix_1,jd_unix_2) = gd_unix.to_julian();
     let mut iline : usize = 0;
     let mut sf = None;
 
@@ -152,14 +224,7 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
 		    let l1c_rad = MdrL1CRad::read_bin(&mut br,rec,sf)?;
 
 		    for j in 0..SNOT {
-			let (jd1,jd2) =
-			    (jd2000_1 + l1c.cds_date[j].day as f64,
-			     jd2000_2 + l1c.cds_date[j].msec as f64
-			     / 86400000.0);
-			// let (_gd,fod) = GregorianDate::from_julian(jd1,jd2)?;
-			// let _hms = HMS::from_fraction_of_day(fod)?;
-			let t0 = ((jd1 - jd_unix_1) +
-				  (jd2 - jd_unix_2))*86400.0;
+			let t0 = l1c.cds_date[j].to_unix();
 
 			t0s[[iline,j]] = t0;
 			
@@ -270,17 +335,138 @@ fn do_nat2nc(mut args:Arguments)->Result<()> {
 				   [IDefNsFirst,IDefSpectrDWn]")?;
     var.put(wns.view(),..)?;
 
-    trace!("Adding metadata");
+    add_metadata(&mut fd_out,&mphr,"nat1c-to-netcdf")?;
+    Ok(())
+}
 
-    let name = "iasinat by ExH R&D S.A.R.L. <bd@exhrd.fr>";
+fn do_nat2_to_netcdf(mut args:Arguments)->Result<()> {
+    let input_path : OsString = args.value_from_str("--input")?;
+    let output_path : OsString = args.value_from_str("--output")?;
 
-    let _attr = fd_out.add_attribute("product_name",mphr.product_name.clone())?;
-    let _conv_name = fd_out.add_attribute("converter_name",name.to_string());
-    let _conv_commit = fd_out.add_attribute(
-	"converter_commit",
-	env!("IASINAT_COMMIT").to_string());
-    let _conv_stamp = fd_out.add_attribute(
-	"converter_build_timestamp",
-	env!("IASINAT_BUILD_TIMESTAMP").to_string());
+    let rest = args.finish();
+    if !rest.is_empty() {
+	bail!("Unhandled arguments: {:?}; try --help",rest);
+    }
+
+    info!("Opening NAT file {:?}",input_path);
+    let fd_in = File::open(&input_path)?;
+    let mut br = BufReader::new(fd_in);
+    let recs = Grh::read_recs(&mut br)?;
+    // let mut iline : usize = 0;
+
+    // Count number of L2 records
+    let nline = recs.iter().filter(|rec| {
+	matches!(rec.record_kind,GrhRecordKind::MdrL2)
+    }).count();
+    info!("Number of L2 records: {}",nline);
+
+    // let nchan = ichan1 - ichan0;
+    // info!("Number of selected channels: {}",nchan);
+
+    // let dims = (nline,SNOT,PN);
+
+    // macro_rules! mkv {
+    // 	($name:ident,$t:ty) => {
+    // 	    let mut $name : Array3<$t> = Array3::zeros(dims);
+    // 	};
+    // 	($name:ident,$t:ty,$x:expr) => {
+    // 	    let mut $name : Array3<$t> = Array3::from_elem(dims,$x);
+    // 	}
+    // }
+
+    // mkv!(lon,f32);
+    // mkv!(lat,f32);
+    // mkv!(sza,f32);
+    // mkv!(saa,f32);
+    // mkv!(iza,f32);
+    // mkv!(iaa,f32);
+    // mkv!(clc,i8);
+    // mkv!(lfr,i8);
+    // mkv!(sif,i8);
+
+    // let mut rads : Array4<f32> = Array4::zeros((nline,SNOT,PN,nchan));
+    // let mut esds : Array1<f64> = Array1::zeros(nline);
+
+    // let mut flg : Array4<i8> = Array4::zeros((nline,SNOT,PN,SB));
+    // let mut t0s : Array2<f64> = Array2::zeros((nline,SNOT));
+    // let mut wn0_d_wn : Option<(f32,f32)> = None;
+    let mut mphr : Option<Mphr> = None;
+
+    // Get GIADR
+    let giadr_rec = recs.iter().find(|rec| {
+	matches!(rec.record_kind,GrhRecordKind::GiadrL2)
+    }).ok_or_else(|| anyhow!("Can't find GIADR"))?;
+    let giadr = GiadrL2::read_bin(&mut br,giadr_rec)?;
+    println!("{:#?}",giadr);
+
+    for rec in &recs {
+	trace!("Record: {:#?}",rec);
+	match rec.record_kind {
+	    // GrhRecordKind::GiadrL2 => {
+	    // 	let giadr_l2 = GiadrL2::read_bin(&mut br,rec)?;
+	    // },
+	    // GrhRecordKind::GiadrScaleFactors => {
+	    // 	sf = Some(GiadrScaleFactors::read_bin(&mut br,rec)?);
+	    // },
+	    GrhRecordKind::MdrL2 => {
+		let mdr_l2 = MdrL2::read_bin(&mut br,&giadr,rec)?;
+		println!("{:?}",mdr_l2);
+	    },
+	    // 	let l1c = MdrL1C::read_bin(&mut br,rec,iline as i32 + 1)?;
+	    // 	esds[iline] = l1c.earth_sat_dist as f64;
+
+	    // 	// let spe = SatPosEstimator::new(height)?;
+	    // 	if let Some(sf) = sf.as_ref() {
+	    // 	    let l1c_rad = MdrL1CRad::read_bin(&mut br,rec,sf)?;
+
+	    // 	    for j in 0..SNOT {
+	    // 		let t0 = l1c.cds_date[j].to_unix();
+
+	    // 		t0s[[iline,j]] = t0;
+			
+	    // 		for i in 0..PN {
+	    // 		    let idx = [iline,j,i];
+	    // 		    macro_rules! setv {
+	    // 			($name:ident) => {
+	    // 			    $name[idx] = l1c.$name[j][i];
+	    // 			}
+	    // 		    }
+
+	    // 		    setv!(lon);
+	    // 		    setv!(lat);
+	    // 		    setv!(sza);
+	    // 		    setv!(saa);
+	    // 		    setv!(iza);
+	    // 		    setv!(iaa);
+	    // 		    setv!(lfr);
+	    // 		    setv!(sif);
+	    // 		    setv!(clc);
+
+	    // 		    for k in 0..SB {
+	    // 			flg[[iline,j,i,k]] = l1c.flg[j][i][k];
+	    // 		    }
+
+	    // 		    wn0_d_wn = Some((l1c_rad.wn0,l1c_rad.d_wn));
+	    // 		    for k in 0..nchan {
+	    // 			rads[[iline,j,i,k]] = l1c_rad.rad[[ichan0 + k,i,j]];
+	    // 		    }
+	    // 		}
+	    // 	    }
+	    // 	}
+
+	    // 	iline += 1;
+	    // },
+	    GrhRecordKind::Mphr => mphr = Some(Mphr::read_bin(&mut br,rec)?),
+	    _ => ()
+	}
+    }
+
+    let mphr = mphr.ok_or_else(|| anyhow!("Could not find MPHR"))?;
+    info!("Product name: {}",mphr.product_name);
+
+    info!("Creating NetCDF file {:?}",output_path);
+    let mut fd_out = nc::create(&output_path)?;
+    
+    add_metadata(&mut fd_out,&mphr,"nat2-to-netcdf")?;
     Ok(())
 }

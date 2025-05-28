@@ -398,8 +398,6 @@ dependencies = [
 [[package]]
 name = "tofas"
 version = "0.2.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "135a68f0c823835a052bf282153c892f8578f7ba7ddf7aafd795003fb22c35a3"
 dependencies = [
  "custom_error",
 ]

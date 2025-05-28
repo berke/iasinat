@@ -9,15 +9,63 @@ pub struct ShortCdsTime {
 }
 
 #[derive(Copy,Clone,Debug,PartialEq)]
+pub enum GrhRecordClass {
+    Reserved,
+    Mphr,
+    Sphr,
+    Ipr,
+    Geadr,
+    Giadr,
+    Veadr,
+    Viadr,
+    Mdr,
+    Other(i8)
+}
+
+impl From<i8> for GrhRecordClass {
+    fn from(c:i8)->Self {
+	// EPS.GGS.SPE.96167 v8C 4.2.1.1
+	use GrhRecordClass::*;
+
+	match c {
+	    0 => Reserved,
+	    1 => Mphr,
+	    2 => Sphr,
+	    3 => Ipr,
+	    4 => Geadr,
+	    5 => Giadr,
+	    6 => Veadr,
+	    7 => Viadr,
+	    8 => Mdr,
+	    _ => Other(c)
+	}
+    }
+}
+
+#[derive(Copy,Clone,Debug,PartialEq)]
 pub enum GrhRecordKind {
     Mphr,
     GiadrQuality,
     GiadrScaleFactors,
     GiadrL1Eng,
+    GiadrL2,
     ViadrEng,
     MdrL1C,
     MdrL1Eng,
+    MdrL2,
     Other(i8,i8,i8)
+}
+
+impl Display for GrhRecordKind {
+    fn fmt(&self,f:&mut Formatter<'_>)->Result<(),std::fmt::Error> {
+	match self {
+	    &Self::Other(cl,sc,vr) => {
+		let cl : GrhRecordClass = cl.into();
+		write!(f,"{:?}({},{})",cl,sc,vr)
+	    }
+	    _ => write!(f,"{:?}",self)
+	}
+    }
 }
 
 impl From<(i8,i8,i8)> for GrhRecordKind {
@@ -26,8 +74,10 @@ impl From<(i8,i8,i8)> for GrhRecordKind {
 	    (1,0,2) => Self::Mphr,
 	    (5,0,_) => Self::GiadrQuality,
 	    (5,1,2) => Self::GiadrScaleFactors,
+	    (5,1,4) => Self::GiadrL2,
 	    (5,2,_) => Self::GiadrL1Eng,
 	    (7,0,_) => Self::ViadrEng,
+	    (8,1,4) => Self::MdrL2,
 	    (8,2,_) => Self::MdrL1C,
 	    (8,3,_) => Self::MdrL1Eng,
 	    _ => Self::Other(c,s,v)
@@ -42,6 +92,64 @@ pub struct GiadrScaleFactors {
     pub i_def_scale_sond_ns_last:[i16;10],
     pub i_def_scale_sond_scale_factor:[i16;10],
     pub i_def_scale_iis_scale_scale_factor:i16
+}
+
+// EUM/OPS-EPS/MAN/04/0033 v3E p.60
+#[derive(Debug)]
+pub struct GiadrL2 {
+    pub contents:GiadrL2Contents,
+    // pub error_data:GiadrL2ErrorData,
+    // pub brescia:GiadrL2Brescia,
+    // pub forli:GiadrL2Forli,
+}
+
+// EUM/OPS-EPS/MAN/04/0033 v3E p.60
+// Scaling factor applied
+#[derive(Debug)]
+pub struct GiadrL2Contents {
+    /// Pressure levels on which retrieved temperature profiles
+    /// are given [Pa]
+    pub pressure_levels_temp:Vec<f64>,
+
+    /// Pressure levels on which retrieved humidity profiles
+    /// are given [Pa]
+    pub pressure_levels_humidity:Vec<f64>,
+
+    /// Pressure levels on which retrieved ozone profiles
+    /// are given [Pa]
+    pub pressure_levels_ozone:Vec<f64>,
+
+    /// Wavelengths for surface emissivity [micron]
+    pub surface_emissivity_wavelengths:Vec<f64>,
+}
+
+// EUM/OPS-EPS/MAN/04/0033 v3E p.60
+#[derive(Debug)]
+pub struct GiadrL2ErrorData {
+    pub num_temperature_pcs:u8,
+    pub num_water_vapour_pcs:u8,
+    pub num_ozone_pcs:u8,
+}
+
+#[derive(Debug)]
+pub struct MdrL2 {
+    pub measurement_data:MdrL2MeasurementData,
+    pub navigation_data_ifov:MdrL2NavigationDataIfov
+}
+
+#[derive(Debug)]
+pub struct MdrL2MeasurementData {
+    pub atmospheric_temperature:Array3<f64>,
+    pub atmospheric_water_vapour:Array3<f64>,
+    pub atmospheric_ozone:Array3<f64>,
+    pub surface_temperature:Array2<f64>,
+    pub surface_emissivity:Array3<f64>
+}
+
+#[derive(Debug)]
+pub struct MdrL2NavigationDataIfov {
+    pub angular_relation:Array3<f64>,
+    pub earth_location:Array3<f64>,
 }
 
 pub const NU0 : f32 = 645.0;
@@ -218,13 +326,13 @@ pub type Angles = ([[f32;PN];SNOT],[[f32;PN];SNOT]);
 pub type NatReader<R> = BufReader<R>;
 
 impl GiadrScaleFactors {
-    pub fn read_bin<R:Read+Seek>(mut rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
 	rec.seek_to_record(rd,20)?;
-	let i_def_scale_sond_nb_scale = i16::read_bin(&mut rd)?;
-	let i_def_scale_sond_ns_first = <[i16;10]>::read_bin(&mut rd)?;
-	let i_def_scale_sond_ns_last = <[i16;10]>::read_bin(&mut rd)?;
-	let i_def_scale_sond_scale_factor = <[i16;10]>::read_bin(&mut rd)?;
-	let i_def_scale_iis_scale_scale_factor = i16::read_bin(&mut rd)?;
+	let i_def_scale_sond_nb_scale = i16::read_bin(rd)?;
+	let i_def_scale_sond_ns_first = <[i16;10]>::read_bin(rd)?;
+	let i_def_scale_sond_ns_last = <[i16;10]>::read_bin(rd)?;
+	let i_def_scale_sond_scale_factor = <[i16;10]>::read_bin(rd)?;
+	let i_def_scale_iis_scale_scale_factor = i16::read_bin(rd)?;
 	Ok(Self {
 	    i_def_scale_sond_nb_scale,
 	    i_def_scale_sond_ns_first,
@@ -669,11 +777,7 @@ impl From<VInteger4> for f32 {
     }
 }
 
-impl BinaryIoBig for ShortCdsTime {
-    fn write_bin<W:Write>(&self,_wr:&mut W)->Result<()> {
-	todo!()
-    }
-
+impl ReadBinBig for ShortCdsTime {
     fn read_bin<R:Read>(rd:&mut R)->Result<Self> {
 	let day = i16::read_bin(rd)?;
 	let msec = i32::read_bin(rd)?;
@@ -742,6 +846,186 @@ impl Grh {
 	    record_start_time,
 	    record_end_time,
 	    record_pos
+	})
+    }
+}
+
+impl GiadrL2 {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
+	let contents = GiadrL2Contents::read_bin(rd,rec)?;
+	Ok(Self {
+	    contents
+	})
+    }
+}
+
+fn read_vec_map<R,T,U,F>(rd:&mut NatReader<R>,n:usize,mut f:F)->Result<Vec<U>>
+where
+    R:Read + Seek,
+    T:ReadBinBig,
+    F:FnMut(&T)->U
+{
+    let mut v = Vec::with_capacity(n);
+    for _ in 0..n {
+	let x = T::read_bin(rd)?;
+	let y = f(&x);
+	v.push(y);
+    }
+    Ok(v)
+}
+
+fn read_vec_and_scale<R:Read+Seek>(rd:&mut NatReader<R>,scale:f64)
+				   ->Result<Vec<f64>>
+{
+    let n = u8::read_bin(rd)? as usize;
+    read_vec_map(rd,n,|&x:&u32|->f64 { x as f64 / scale })
+}
+
+fn read_a2_map<R,T,U,F>(rd:&mut NatReader<R>,
+			(d1,d2):(usize,usize),
+			f:F)->Result<Array2<U>>
+where
+    R:Read + Seek,
+    T:ReadBinBig,
+    F:FnMut(&T)->U
+{
+    let v = read_vec_map(rd,d1*d2,f)?;
+    let a : Array2<U> = Array2::from_shape_vec((d1,d2),v)?;
+    Ok(a)
+}
+
+fn read_a3_map<R,T,U,F>(rd:&mut NatReader<R>,
+			(d1,d2,d3):(usize,usize,usize),
+			f:F)->Result<Array3<U>>
+where
+    R:Read + Seek,
+    T:ReadBinBig,
+    F:FnMut(&T)->U
+{
+    let v = read_vec_map(rd,d1*d2*d3,f)?;
+    let a : Array3<U> = Array3::from_shape_vec((d1,d2,d3),v)?;
+    Ok(a)
+}
+
+impl GiadrL2Contents {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
+	rec.seek_to_record(rd,20)?;
+	let pressure_levels_temp = read_vec_and_scale(rd,1e2)?;
+	rec.seek_to_record(rd,425)?;
+	let pressure_levels_humidity = read_vec_and_scale(rd,1e2)?;
+	rec.seek_to_record(rd,830)?;
+	let pressure_levels_ozone = read_vec_and_scale(rd,1e2)?;
+	rec.seek_to_record(rd,1235)?;
+	let surface_emissivity_wavelengths = read_vec_and_scale(rd,1e4)?;
+	Ok(Self {
+	    pressure_levels_temp,
+	    pressure_levels_humidity,
+	    pressure_levels_ozone,
+	    surface_emissivity_wavelengths
+	})
+    }
+}
+
+impl MdrL2 {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+				 ->Result<Self>
+    {
+	let navigation_data_ifov =
+	    MdrL2NavigationDataIfov::read_bin(rd,rec)?;
+	let measurement_data =
+	    MdrL2MeasurementData::read_bin(rd,giadr,rec)?;
+
+	Ok(Self {
+	    measurement_data,
+	    navigation_data_ifov
+	})
+    }
+}
+
+fn u16_to_f64(x:u16,s:f64)->f64 {
+    if x == u16::MAX {
+	f64::NAN
+    } else {
+	x as f64 / s
+    }
+}
+
+fn u32_to_f64(x:u32,s:f64)->f64 {
+    if x == u32::MAX {
+	f64::NAN
+    } else {
+	x as f64 / s
+    }
+}
+
+fn i16_to_f64(x:i16,s:f64)->f64 {
+    if x == i16::MAX {
+	f64::NAN
+    } else {
+	x as f64 / s
+    }
+}
+
+fn i32_to_f64(x:i32,s:f64)->f64 {
+    if x == i32::MAX {
+	f64::NAN
+    } else {
+	x as f64 / s
+    }
+}
+
+impl MdrL2MeasurementData {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+				 ->Result<Self>
+    {
+	rec.seek_to_record(rd,97702)?;
+	let nlt = giadr.contents.pressure_levels_temp.len();
+	let atmospheric_temperature =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u16_to_f64(x,1e2))?; // XXX: Order
+
+	rec.seek_to_record(rd,121942)?;
+	let nlt = giadr.contents.pressure_levels_humidity.len();
+	let atmospheric_water_vapour =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u32_to_f64(x,1e7))?;
+
+	rec.seek_to_record(rd,170422)?;
+	let nlt = giadr.contents.pressure_levels_ozone.len();
+	let atmospheric_ozone =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u16_to_f64(x,1e8))?;
+
+	rec.seek_to_record(rd,194662)?;
+	let surface_temperature =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+
+	rec.seek_to_record(rd,196342)?;
+	let new = giadr.contents.surface_emissivity_wavelengths.len();
+	let surface_emissivity =
+	    read_a3_map(rd,(new,SNOT,PN),|&x| u16_to_f64(x,1e4))?;
+
+	Ok(Self {
+	    atmospheric_temperature,
+	    atmospheric_water_vapour,
+	    atmospheric_ozone,
+	    surface_temperature,
+	    surface_emissivity
+	})
+    }
+}
+impl MdrL2NavigationDataIfov {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
+				 ->Result<Self>
+    {
+	// rec.seek_to_record(rd,74321)?; // according to L2 PG
+	rec.seek_to_record(rd,203067)?; // according to mod_l1c_l2_reading
+	let angular_relation =
+	    read_a3_map(rd,(PN,SNOT,4),|&x| i16_to_f64(x,1e2))?;
+
+	rec.seek_to_record(rd,204027)?;
+	let earth_location =
+	    read_a3_map(rd,(PN,SNOT,2),|&x| i32_to_f64(x,1e4))?;
+	Ok(Self {
+	    angular_relation,
+	    earth_location
 	})
     }
 }

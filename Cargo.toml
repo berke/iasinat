@@ -12,6 +12,7 @@ description = "Reader for IASI NAT files"
 anyhow = "1.0.98"
 ndarray = { version = "0.16.1" }
 regex = { version = "1.11.1" }
-tofas = "0.2.9"
+# tofas = "0.2.9"
+tofas = { path = "../tofas/crates/tofas" }
 iasinat-lib = { path = "lib" }
 log = "0.4.27"
