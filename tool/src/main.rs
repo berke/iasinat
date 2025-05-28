@@ -1,3 +1,4 @@
+mod cmp1c_netcdf;
 mod list_recs;
 mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
@@ -16,12 +17,14 @@ use anyhow::{
 use ndarray::{
     Array2,
     Array3,
-    Array4
+    Array4,
+    Dimension,
 };
 
 use log::{
     trace,
-    info
+    info,
+    warn
 };
 
 use pico_args::Arguments;
@@ -37,12 +40,21 @@ pub struct Subcommand {
 }
 
 const SUBCMDS : &[&Subcommand] = &[
+    &cmp1c_netcdf::CMD,
     &list_recs::CMD,
     &nat1c_to_netcdf::CMD,
     &nat2_to_netcdf::CMD,
 ];
 
 const PROGRAM_NAME : &str = "iasinat by ExH R&D S.A.R.L. <bd@exhrd.fr>";
+
+pub fn finish_args(args:Arguments)->Result<()> {
+    let rest = args.finish();
+    if !rest.is_empty() {
+	bail!("Unhandled arguments: {:?}; try --help",rest);
+    }
+    Ok(())
+}
 
 fn do_version(_args:Arguments)->Result<()> {
     println!("{}",PROGRAM_NAME);
