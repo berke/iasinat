@@ -13,7 +13,7 @@ pub struct ShortCdsTime {
 
 pub const JD_UNIX : R = 2440587.5;
 
-pub const JD2000 : R = 2451545.5;
+pub const JD2000 : R = 2451544.5;
 
 impl ShortCdsTime {
     pub fn to_julian(&self)->(R,R) {
