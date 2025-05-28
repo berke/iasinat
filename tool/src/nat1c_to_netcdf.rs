@@ -19,7 +19,17 @@ pub const CMD : Subcommand = Subcommand {
         --ichan0 CH
                  Zero-based index of beginning of IASI channel range
         --ichan1 CH
-                 Zero-based index of end of IASI channel range (exclusive)"
+                 Zero-based index of end of IASI channel range (exclusive)
+
+	Raw radiances
+
+        Radiances are converted to physical units by applying the scaling
+        factors contained in the GIADR record and stored as single-precision
+        floats.
+
+        --raw-radiances
+                 Create a radiance_raw variable containing the unconverted
+                 16-bit signed integer values."
 };
 
 pub fn run(mut args:Arguments)->Result<()> {
@@ -28,6 +38,8 @@ pub fn run(mut args:Arguments)->Result<()> {
 
     let ichan0 = args.opt_value_from_str("--ichan0")?.unwrap_or(0);
     let ichan1 = args.opt_value_from_str("--ichan1")?.unwrap_or(NBR_IASI);
+
+    let raw_radiances = args.contains("--raw-radiances");
 
     let rest = args.finish();
     if !rest.is_empty() {
@@ -72,6 +84,12 @@ pub fn run(mut args:Arguments)->Result<()> {
     mkv!(sif,i8);
 
     let mut rads : Array4<f32> = Array4::zeros((nline,SNOT,PN,nchan));
+    let mut rads_raw : Array4<i16> =
+	if raw_radiances {
+	    Array4::zeros((nline,SNOT,PN,nchan))
+	} else {
+	    Array4::zeros((1,1,1,1))
+	};
     let mut esds : Array1<f64> = Array1::zeros(nline);
 
     let mut flg : Array4<i8> = Array4::zeros((nline,SNOT,PN,SB));
@@ -123,6 +141,9 @@ pub fn run(mut args:Arguments)->Result<()> {
 			    wn0_d_wn = Some((l1c_rad.wn0,l1c_rad.d_wn));
 			    for k in 0..nchan {
 				rads[[iline,j,i,k]] = l1c_rad.rad[[ichan0 + k,i,j]];
+				if raw_radiances {
+				    rads_raw[[iline,j,i,k]] = l1c_rad.rad_i16[[ichan0 + k,i,j]];
+				}
 			    }
 			}
 		    }
@@ -190,12 +211,21 @@ pub fn run(mut args:Arguments)->Result<()> {
 				   [EARTH_SATELLITE_DISTANCE]")?;
     var.put(esds.view(),..)?;
 
-    trace!("Adding radiance");
+    trace!("Adding radiances");
     let mut var = fd_out.add_variable::<f32>("radiance",
 					     &["line","snot","pn","chan"])?;
     var.put_attribute("units","W/m^2/sr/(cm^-1)")?;
     var.put_attribute("long_name","spectral radiance [GS1cSpect]")?;
     var.put(rads.view(),(..,..,..,..))?;
+
+    if raw_radiances {
+	trace!("Adding raw radiances");
+	let mut var = fd_out.add_variable::<i16>("radiance_raw",
+						 &["line","snot","pn","chan"])?;
+	var.put_attribute("units","-")?;
+	var.put_attribute("long_name","raw spectral radiance [GS1cSpect]")?;
+	var.put(rads_raw.view(),(..,..,..,..))?;
+    }
 
     trace!("Adding wavenumber");
     let wns = Array1::from_shape_fn(nchan,|k| wn0 + k as f32*d_wn);

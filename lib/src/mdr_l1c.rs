@@ -47,7 +47,8 @@ pub struct MdrL1CRad {
     // last sample
     pub ns_last:i32,
     // radiance
-    pub rad:Array3<f32>
+    pub rad:Array3<f32>,
+    pub rad_i16:Array3<i16>
     // // AVHRR radiance analysis
     // pub radanal:AvhrrRadAnal,
     // // IIS subgrid localization
@@ -223,9 +224,10 @@ impl MdrL1CRad {
 
 	let wn0 : f32 = d_wn * (ns_first - 1) as f32;
 
-	// XXX order
-	let values_3d : Array3<i16> = Array3::from_shape_vec((SNOT,PN,SS),values)?;
+	let values_3d : Array3<i16> =
+	    Array3::from_shape_vec((SNOT,PN,SS),values)?;
 	let mut rad : Array3<f32> = Array3::zeros((SS,PN,SNOT));
+	let mut rad_i16 : Array3<i16> = Array3::zeros((SS,PN,SNOT));
 	for j in 0..SNOT {
 	    for i in 0..PN {
 		for jsf in 0..giadr_sf.i_def_scale_sond_nb_scale {
@@ -234,14 +236,14 @@ impl MdrL1CRad {
 			      [jsf as usize] as i32);
 		    for jc in
 			(giadr_sf.i_def_scale_sond_ns_first
-			 [jsf as usize] as i32)..
+			 [jsf as usize] as i32) ..=
 			(giadr_sf.i_def_scale_sond_ns_last
 			 [jsf as usize] as i32).min(ns_last)
 		    {
 			let l = jc - ns_first;
-			rad[[l as usize,i,j]] =
-			    values_3d[[j,i,l as usize]]
-			    as f32 * powsf;
+			let v = values_3d[[j,i,l as usize]];
+			rad_i16[[l as usize,i,j]] = v;
+			rad[[l as usize,i,j]] = v as f32 * powsf;
 		    }
 		}
 	    }
@@ -249,6 +251,7 @@ impl MdrL1CRad {
 
 	Ok(Self {
 	    rad,
+	    rad_i16,
 	    wn0,
 	    d_wn,
 	    ns_first,
