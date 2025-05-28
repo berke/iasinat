@@ -1,0 +1,95 @@
+use super::*;
+
+#[derive(Debug)]
+pub struct MdrL2 {
+    pub measurement_data:MdrL2MeasurementData,
+    pub navigation_data_ifov:MdrL2NavigationDataIfov
+}
+
+#[derive(Debug)]
+pub struct MdrL2MeasurementData {
+    pub atmospheric_temperature:Array3<f64>,
+    pub atmospheric_water_vapour:Array3<f64>,
+    pub atmospheric_ozone:Array3<f64>,
+    pub surface_temperature:Array2<f64>,
+    pub surface_emissivity:Array3<f64>
+}
+
+#[derive(Debug)]
+pub struct MdrL2NavigationDataIfov {
+    pub angular_relation:Array3<f64>,
+    pub earth_location:Array3<f64>,
+}
+
+impl MdrL2 {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+				 ->Result<Self>
+    {
+	let navigation_data_ifov =
+	    MdrL2NavigationDataIfov::read_bin(rd,rec)?;
+	let measurement_data =
+	    MdrL2MeasurementData::read_bin(rd,giadr,rec)?;
+
+	Ok(Self {
+	    measurement_data,
+	    navigation_data_ifov
+	})
+    }
+}
+
+impl MdrL2MeasurementData {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+				 ->Result<Self>
+    {
+	rec.seek_to_record(rd,97702)?;
+	let nlt = giadr.contents.pressure_levels_temp.len();
+	let atmospheric_temperature =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u16_to_f64(x,1e2))?; // XXX: Order
+
+	rec.seek_to_record(rd,121942)?;
+	let nlt = giadr.contents.pressure_levels_humidity.len();
+	let atmospheric_water_vapour =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u32_to_f64(x,1e7))?;
+
+	rec.seek_to_record(rd,170422)?;
+	let nlt = giadr.contents.pressure_levels_ozone.len();
+	let atmospheric_ozone =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u16_to_f64(x,1e8))?;
+
+	rec.seek_to_record(rd,194662)?;
+	let surface_temperature =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+
+	rec.seek_to_record(rd,196342)?;
+	let new = giadr.contents.surface_emissivity_wavelengths.len();
+	let surface_emissivity =
+	    read_a3_map(rd,(new,SNOT,PN),|&x| u16_to_f64(x,1e4))?;
+
+	Ok(Self {
+	    atmospheric_temperature,
+	    atmospheric_water_vapour,
+	    atmospheric_ozone,
+	    surface_temperature,
+	    surface_emissivity
+	})
+    }
+}
+
+impl MdrL2NavigationDataIfov {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
+				 ->Result<Self>
+    {
+	// rec.seek_to_record(rd,74321)?; // according to L2 PG
+	rec.seek_to_record(rd,203067)?; // according to mod_l1c_l2_reading
+	let angular_relation =
+	    read_a3_map(rd,(PN,SNOT,4),|&x| i16_to_f64(x,1e2))?;
+
+	rec.seek_to_record(rd,204027)?;
+	let earth_location =
+	    read_a3_map(rd,(PN,SNOT,2),|&x| i32_to_f64(x,1e4))?;
+	Ok(Self {
+	    angular_relation,
+	    earth_location
+	})
+    }
+}

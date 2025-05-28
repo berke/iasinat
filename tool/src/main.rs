@@ -112,8 +112,8 @@ fn do_list_recs(mut args:Arguments)->Result<()> {
     let fd_in = File::open(&input_path)?;
     let mut br = BufReader::new(fd_in);
     let recs = Grh::read_recs(&mut br)?;
-    println!("{:8} {:8} {:3} {:26} {:26} {:8} {:16}",
-	     "Record#","Kind","Ins","Start","End","Position","Size");
+    println!("{:4} {:17} {:3} {:26} {:26} {:8} {:16}",
+	     "Rec#","Kind","Ins","Start","End","Position","Size");
     for (irec,rec) in recs.iter().enumerate() {
 	let Grh { record_kind,
 		  instrument_group,
@@ -123,7 +123,7 @@ fn do_list_recs(mut args:Arguments)->Result<()> {
 		  record_pos } = *rec;
 	let t1 = record_start_time.to_gregorian_hms()?;
 	let t2 = record_end_time.to_gregorian_hms()?;
-	println!("{:8} {:8} {:3} {:26} {:26} {:8} {:16}",
+	println!("{:4} {:17} {:3} {:26} {:26} {:8} {:16}",
 		 irec,
 		 format!("{}",record_kind),
 		 instrument_group,
