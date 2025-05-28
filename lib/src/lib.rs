@@ -30,6 +30,15 @@ pub use ndarray::{
     Array3
 };
 
+pub use tofas::{
+    calendar::{
+	GregorianDate,
+	HMS,
+	GregorianDateHMS
+    },
+    common::R,
+};
+
 pub mod cds_time;
 pub mod consts;
 pub mod grh;
@@ -46,7 +55,7 @@ pub mod utils;
 pub mod prelude {
     pub use super::*;
 
-    pub use timestamp::Timestamp;
+    pub use timestamp::ToUnix;
     pub use cds_time::ShortCdsTime;
     pub use giadr_l1c::*;
     pub use giadr_l2::*;

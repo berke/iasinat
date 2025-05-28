@@ -9,9 +9,6 @@ pub struct GiadrScaleFactors {
     pub i_def_scale_iis_scale_scale_factor:i16
 }
 
-// pub struct GiadrL1Eng {
-// }
-
 impl GiadrScaleFactors {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
 	rec.seek_to_record(rd,20)?;

@@ -1,5 +1,7 @@
 use super::*;
 
+pub type Timestamp = GregorianDateHMS;
+
 #[derive(Debug)]
 pub struct Mphr {
     pub product_name:String,
