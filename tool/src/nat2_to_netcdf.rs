@@ -3,7 +3,7 @@ use super::*;
 pub const CMD : Subcommand = Subcommand {
     name:"nat2-to-netcdf",
     synopsis:"Converts a IASI L2 NAT file to a NetCDF file",
-    run:run,
+    run,
     help:"\
     Mandatory arguments:
 	--input  IN.nat

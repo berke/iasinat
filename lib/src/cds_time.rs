@@ -11,8 +11,6 @@ pub struct ShortCdsTime {
     pub msec:i32
 }
 
-pub const JD_UNIX : R = 2440587.5;
-
 pub const JD2000 : R = 2451544.5;
 
 impl ShortCdsTime {

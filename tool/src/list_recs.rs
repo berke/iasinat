@@ -3,7 +3,7 @@ use super::*;
 pub const CMD : Subcommand = Subcommand {
     name:"list-recs",
     synopsis:"Lists the records of a NAT file",
-    run:run,
+    run,
     help:"\
     Mandatory arguments:
        --input  IN.nat

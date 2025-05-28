@@ -104,7 +104,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a793df0d7afeac54f95b471d3af7f0d4fb975699f972341a4b76988d49cdf0c"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -397,7 +397,9 @@ dependencies = [
 
 [[package]]
 name = "tofas"
-version = "0.2.10"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a655f6632b3118b15eef1a1681c4de3e6bbdbb0d3296a76c36c5821af2c26be0"
 dependencies = [
  "custom_error",
 ]

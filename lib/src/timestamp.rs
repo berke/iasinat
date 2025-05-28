@@ -15,14 +15,12 @@ pub trait ToUnix {
 impl ToUnix for GregorianDateHMS { 
     fn to_unix(&self)->f64 {
 	let (jd1,jd2) = self.to_julian();
-	let t0 = ((jd1 - JD_UNIX) + jd2)*86400.0;
-	t0
+	((jd1 - JD_UNIX) + jd2)*86400.0
     }
 }
 
 pub fn julian_to_unix(jd1:R,jd2:R)->f64 {
-    let t0 = ((jd1 - JD_UNIX) + jd2)*86400.0;
-    t0
+    ((jd1 - JD_UNIX) + jd2)*86400.0
 }
 
 pub fn unix_to_julian(t:f64)->(R,R) {

@@ -3,7 +3,7 @@ use super::*;
 pub const CMD : Subcommand = Subcommand {
     name:"cmp1c-netcdf",
     synopsis:"Compares EUMETSAT L1C NetCDF files with those produced by this tool",
-    run:run,
+    run,
     help:"\
     Mandatory arguments:
         --input-eumetsat IN.nc
