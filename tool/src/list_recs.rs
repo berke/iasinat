@@ -12,11 +12,7 @@ pub const CMD : Subcommand = Subcommand {
 
 fn run(mut args:Arguments)->Result<()> {
     let input_path : OsString = args.value_from_str("--input")?;
-
-    let rest = args.finish();
-    if !rest.is_empty() {
-	bail!("Unhandled arguments: {:?}; try --help",rest);
-    }
+    finish_args(args)?;
 
     info!("Opening NAT file {:?}",input_path);
     let fd_in = File::open(&input_path)?;

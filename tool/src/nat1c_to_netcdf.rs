@@ -41,10 +41,7 @@ pub fn run(mut args:Arguments)->Result<()> {
 
     let raw_radiances = args.contains("--raw-radiances");
 
-    let rest = args.finish();
-    if !rest.is_empty() {
-	bail!("Unhandled arguments: {:?}; try --help",rest);
-    }
+    finish_args(args)?;
 
     info!("Opening NAT file {:?}",input_path);
     let fd_in = File::open(&input_path)?;
