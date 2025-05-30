@@ -77,6 +77,9 @@ fn run(mut args:Arguments)->Result<()> {
     let nlo = giadr.contents.pressure_levels_ozone.len();
     let new = giadr.contents.surface_emissivity_wavelengths.len();
     let ncloud = 3;
+    let nerrt = giadr.error_data.num_temperature_pcs as usize;
+    let nerrw = giadr.error_data.num_water_vapour_pcs as usize;
+    let nerro = giadr.error_data.num_ozone_pcs as usize;
 
     let mut fg_temp : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlt));
     let mut fg_q : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlq));
@@ -90,6 +93,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut emis : Array4<f64> = Array4::zeros((nline,SNOT,PN,new));
     let mut cc : Array4<f64> = Array4::zeros((nline,SNOT,PN,ncloud));
     let mut ps : Array3<f64> = Array3::zeros((nline,SNOT,PN));
+    let mut lansea : Array3<u8> = Array3::zeros((nline,SNOT,PN));
 
     let mut int_q : Array3<f64> = Array3::zeros((nline,SNOT,PN));
     let mut int_o3 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
@@ -99,6 +103,11 @@ fn run(mut args:Arguments)->Result<()> {
     let mut int_co2 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
 
     let mut scalt : Array1<f32> = Array1::zeros(nline);
+
+    let nerr_max = 255;
+    let mut errt : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrt));
+    let mut errw : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrw));
+    let mut erro : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerro));
 
     let nang = 4;
     let nloc = 2;
@@ -150,10 +159,19 @@ fn run(mut args:Arguments)->Result<()> {
 			angular_relation:mang,
 			earth_location:meloc
 		    },
+		    processing_and_quality_flag:MdrL2ProcessingAndQualityFlag {
+			flg_lansea:mlansea
+		    },
+		    error_data:MdrL2ErrorData {
+			temperature_error:merrt,
+			water_vapour_error:merrw,
+			ozone_error:merro
+		    },
 		    ..
 		} = mdr_l2;
 
 		scalt[iline] = mscalt;
+
 		for j in 0..SNOT {
 		    for i in 0..PN {
 			fg_tsurf[[iline,j,i]] = fgts[[j,i]];
@@ -165,6 +183,7 @@ fn run(mut args:Arguments)->Result<()> {
 			int_ch4[[iline,j,i]] = mch4[[j,i]];
 			int_co2[[iline,j,i]] = mco2[[j,i]];
 			ps[[iline,j,i]] = mps[[j,i]];
+			lansea[[iline,j,i]] = mlansea[[j,i]];
 
 			for k in 0..nang {
 			    ang[[iline,j,i,k]] = mang[[j,i,k]];
@@ -178,19 +197,35 @@ fn run(mut args:Arguments)->Result<()> {
 			    fg_temp[[iline,j,i,k]] = fgat[[j,i,k]];
 			    temp[[iline,j,i,k]] = at[[j,i,k]];
 			}
+
 			for k in 0..nlq {
 			    fg_q[[iline,j,i,k]] = fgaq[[j,i,k]];
 			    q[[iline,j,i,k]] = aq[[j,i,k]];
 			}
+
 			for k in 0..nlo {
 			    fg_o3[[iline,j,i,k]] = fgao[[j,i,k]];
 			    o3[[iline,j,i,k]] = ao[[j,i,k]];
 			}
+
 			for k in 0..new {
 			    emis[[iline,j,i,k]] = memis[[j,i,k]];
 			}
+
 			for k in 0..ncloud {
 			    cc[[iline,j,i,k]] = mcc[[j,i,k]];
+			}
+
+			for k in 0..nerrt {
+			    errt[[iline,j,i,k]] = merrt[[j,i,k]];
+			}
+
+			for k in 0..nerrw {
+			    errw[[iline,j,i,k]] = merrw[[j,i,k]];
+			}
+
+			for k in 0..nerro {
+			    erro[[iline,j,i,k]] = merro[[j,i,k]];
 			}
 		    }
 		}
@@ -219,6 +254,10 @@ fn run(mut args:Arguments)->Result<()> {
     fd_out.add_dimension("ncloud",ncloud)?;
     fd_out.add_dimension("nang",nang)?;
     fd_out.add_dimension("nloc",nloc)?;
+    fd_out.add_dimension("nerrt",nerrt)?;
+    fd_out.add_dimension("nerrw",nerrw)?;
+    fd_out.add_dimension("nerro",nerro)?;
+    fd_out.add_dimension("nerr_max",nerr_max)?;
 
     let mut var = fd_out.add_variable::<f64>("pressure_levels_temp",&["nlt"])?;
     var.put_values(&giadr.contents.pressure_levels_temp[..],..)?;
@@ -381,6 +420,36 @@ fn run(mut args:Arguments)->Result<()> {
     var.put_attribute("long_name","surface pressure")?;
     var.put_attribute("units","Pa")?;
 
+    trace!("Adding temperature error");
+    let mut var = fd_out.add_variable::<f32>("temperature_error",
+					     &["line","snot","pn","nerrt"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(errt.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","retrieval error covariance matrix for \
+				   temperature in principal component domain")?;
+
+    trace!("Adding water vapour error");
+    let mut var = fd_out.add_variable::<f32>("water_vapour_error",
+					     &["line","snot","pn","nerrw"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(errw.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","retrieval error covariance matrix for \
+				   water vapour in principal component domain")?;
+
+    trace!("Adding ozone error");
+    let mut var = fd_out.add_variable::<f32>("ozone_error",
+					     &["line","snot","pn","nerro"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(erro.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","retrieval error covariance matrix for \
+				   ozone in principal component domain")?;
+
+    trace!("Adding lansea");
+    let mut var = fd_out.add_variable::<u8>("flg_lansea",
+					     &["line","snot","pn"])?;
+    var.put(lansea.view(),(..,..,..))?;
+    var.put_attribute("long_name","surface type")?;
+
     trace!("Adding spacecraft altitude");
     let mut var = fd_out.add_variable::<f32>("spacecraft_altitude",
 					     &["line"])?;
@@ -408,6 +477,16 @@ fn run(mut args:Arguments)->Result<()> {
     var.put_attribute("long_name","earth Location: latitude, longitude of \
 				   surface footprint")?;
     var.put_attribute("units","deg")?;
+
+    trace!("Adding sensing start and end");
+    let _ = fd_out.add_attribute("sensing_start_unix",
+				 mphr.sensing_start.to_unix())?;
+    let _ = fd_out.add_attribute("sensing_start_timestamp",
+				 format!("{}",mphr.sensing_start))?;
+    let _ = fd_out.add_attribute("sensing_end_unix",
+				 mphr.sensing_end.to_unix())?;
+    let _ = fd_out.add_attribute("sensing_end_timestamp",
+				 format!("{}",mphr.sensing_end))?;
 
     add_metadata(&mut fd_out,&mphr,"nat2-to-netcdf")?;
     Ok(())
