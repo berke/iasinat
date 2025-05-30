@@ -17,7 +17,7 @@ pub struct LX<G,M> {
     mk:PhantomData<M>
 }
 
-pub type L1C = LX<GiadrScaleFactors,MdrL1C>;
+pub type L1C = LX<GiadrL1C,MdrL1C>;
 pub type L2 = LX<GiadrL2,MdrL2>;
 
 impl<G,M> LX<G,M>

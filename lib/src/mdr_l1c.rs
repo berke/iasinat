@@ -1,26 +1,5 @@
 use super::*;
 
-impl Level<GiadrScaleFactors> for MdrL1C {
-    fn classify_record(kind:&GrhRecordKind)->RecordClassification {
-	match kind {
-	    GrhRecordKind::MdrL1C => RecordClassification::Mdr,
-	    GrhRecordKind::GiadrScaleFactors => RecordClassification::Giadr,
-	    _ => RecordClassification::Other
-	}
-    }
-
-    fn read_giadr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<GiadrScaleFactors> {
-	GiadrScaleFactors::read_bin(rd,rec)
-    }
-    
-    fn read_mdr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&GiadrScaleFactors)
-			      ->Result<Self>
-    {
-	Self::read_bin(rd,rec,giadr)
-    }
-}
-
-
 #[derive(Debug)]
 pub struct MdrL1C {
     // instrument mode
@@ -112,7 +91,7 @@ pub fn nu_of_channel(nu:usize)->f32 {
 
 impl MdrL1C {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
-				 giadr_sf:&GiadrScaleFactors)->Result<Self>
+				 giadr_sf:&GiadrL1C)->Result<Self>
     {
 	// rec.seek_to_record(rd)?;
 	let geps_iasi_mode = Self::l1c_get_iasi_mode(rd,rec)?;
@@ -231,7 +210,7 @@ impl MdrL1C {
 
 impl MdrL1CRad {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
-				 giadr_sf:&GiadrScaleFactors)->Result<Self> {
+				 giadr_sf:&GiadrL1C)->Result<Self> {
 	rec.seek_to_record(rd,276777)?;
 	let d_wn : f32 = VInteger4::read_bin(rd)?.into();
 	let d_wn = d_wn / 100.0;
@@ -280,5 +259,25 @@ impl MdrL1CRad {
 	    ns_first,
 	    ns_last
 	})
+    }
+}
+
+impl Level<GiadrL1C> for MdrL1C {
+    fn classify_record(kind:&GrhRecordKind)->RecordClassification {
+	match kind {
+	    GrhRecordKind::MdrL1C => RecordClassification::Mdr,
+	    GrhRecordKind::GiadrL1C => RecordClassification::Giadr,
+	    _ => RecordClassification::Other
+	}
+    }
+
+    fn read_giadr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<GiadrL1C> {
+	GiadrL1C::read_bin(rd,rec)
+    }
+    
+    fn read_mdr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&GiadrL1C)
+			      ->Result<Self>
+    {
+	Self::read_bin(rd,rec,giadr)
     }
 }

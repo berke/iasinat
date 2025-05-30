@@ -18,7 +18,7 @@ pub enum GrhRecordClass {
 pub enum GrhRecordKind {
     Mphr,
     GiadrQuality,
-    GiadrScaleFactors,
+    GiadrL1C,
     GiadrL1Eng,
     GiadrL2,
     ViadrEng,
@@ -75,7 +75,7 @@ impl From<(i8,i8,i8)> for GrhRecordKind {
 	match (c,s,v) {
 	    (1,0,2) => Self::Mphr,
 	    (5,0,_) => Self::GiadrQuality,
-	    (5,1,2) => Self::GiadrScaleFactors,
+	    (5,1,2) => Self::GiadrL1C,
 	    (5,1,4) => Self::GiadrL2,
 	    (5,2,_) => Self::GiadrL1Eng,
 	    (7,0,_) => Self::ViadrEng,
