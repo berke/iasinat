@@ -15,6 +15,14 @@ pub struct L1C {
     mphr:Mphr
 }
 
+pub struct L2 {
+    br:BufReader<File>,
+    recs:Vec<Grh>,
+    l2_irecs:Vec<usize>,
+    giadr:GiadrL2,
+    mphr:Mphr
+}
+
 impl L1C {
     pub fn open<P:AsRef<Path>>(path:P)->Result<Self> {
 	let fd = File::open(path)?;
@@ -70,5 +78,56 @@ impl L1C {
 
     pub fn giadr(&self)->&GiadrScaleFactors {
 	&self.sf
+    }
+}
+
+impl L2 {
+    pub fn open<P:AsRef<Path>>(path:P)->Result<Self> {
+	let fd = File::open(path)?;
+	let mut br = BufReader::new(fd);
+	let recs = Grh::read_recs(&mut br)?;
+	let mut mphr = None;
+	let mut giadr = None;
+	let mut l2_irecs = Vec::with_capacity(recs.len());
+	for (irec,rec) in recs.iter().enumerate() {
+	    match rec.record_kind {
+		GrhRecordKind::MdrL2 => l2_irecs.push(irec),
+		GrhRecordKind::GiadrL2 =>
+		    giadr = Some(GiadrL2::read_bin(&mut br,rec)?),
+		GrhRecordKind::Mphr =>
+		    mphr = Some(Mphr::read_bin(&mut br,rec)?),
+		_ => ()
+	    }
+	}
+	if let (Some(mphr),Some(giadr)) = (mphr,giadr) {
+	    Ok(Self {
+		br,
+		recs,
+		l2_irecs,
+		giadr,
+		mphr
+	    })
+	} else {
+	    bail!("Cannot find GIADR or MPHR");
+	}
+    }
+
+    pub fn nline(&self)->usize {
+	self.l2_irecs.len()
+    }
+
+    pub fn read_l2(&mut self,iline:usize)->Result<MdrL2> {
+	let irec = self.l2_irecs[iline];
+	let rec = &self.recs[irec];
+	let l2 = MdrL2::read_bin(&mut self.br,rec,&self.giadr)?;
+	Ok(l2)
+    }
+
+    pub fn mphr(&self)->&Mphr {
+	&self.mphr
+    }
+
+    pub fn giadr(&self)->&GiadrL2 {
+	&self.giadr
     }
 }

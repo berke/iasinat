@@ -19,25 +19,12 @@ fn run(mut args:Arguments)->Result<()> {
     finish_args(args)?;
 
     info!("Opening NAT file {:?}",input_path);
-    let fd_in = File::open(&input_path)?;
-    let mut br = BufReader::new(fd_in);
-    let recs = Grh::read_recs(&mut br)?;
+    let mut nat = L2::open(&input_path)?;
 
-    // Count number of L2 records
-    let nline = recs.iter().filter(|rec| {
-	matches!(rec.record_kind,GrhRecordKind::MdrL2)
-    }).count();
+    let nline = nat.nline();
     info!("Number of L2 records: {}",nline);
 
-    let mut mphr : Option<Mphr> = None;
-
-    // Get GIADR
-    let giadr_rec = recs.iter().find(|rec| {
-	matches!(rec.record_kind,GrhRecordKind::GiadrL2)
-    }).ok_or_else(|| anyhow!("Can't find GIADR"))?;
-    let giadr = GiadrL2::read_bin(&mut br,giadr_rec)?;
-    trace!("{:#?}",giadr);
-
+    let giadr = nat.giadr();
     let nlt = giadr.contents.pressure_levels_temp.len();
     let nlq = giadr.contents.pressure_levels_humidity.len();
     let nlo = giadr.contents.pressure_levels_ozone.len();
@@ -81,122 +68,112 @@ fn run(mut args:Arguments)->Result<()> {
     let mut ang : Array4<f32> = Array4::zeros((nline,SNOT,PN,nang));
     let mut eloc : Array4<f64> = Array4::zeros((nline,SNOT,PN,nloc));
 
-    let mut iline = 0;
-
-    for rec in &recs {
-	trace!("Record: {:#?}",rec);
-	match rec.record_kind {
-	    GrhRecordKind::MdrL2 => {
-		let mdr_l2 = MdrL2::read_bin(&mut br,&giadr,rec)?;
-		let MdrL2 {
-		    first_guess_profiles:MdrL2FirstGuessProfiles {
-			fg_atmospheric_temperature:fgat,
-			fg_atmospheric_water_vapour:fgaq,
-			fg_atmospheric_ozone:fgao,
-			fg_surface_temperature:fgts,
-			..
-		    },
-		    measurement_data:MdrL2MeasurementData {
-			atmospheric_temperature:at,
-			atmospheric_water_vapour:aq,
-			atmospheric_ozone:ao,
-			surface_temperature:ts,
-			integrated_water_vapour:mq,
-			integrated_ozone:mo3,
-			integrated_n2o:mn2o,
-			integrated_co:mco,
-			integrated_ch4:mch4,
-			integrated_co2:mco2,
-			surface_emissivity:memis,
-			fractional_cloud_cover:mcc,
-			surface_pressure:mps,
-			..
-		    },
-		    navigation_data_scan_line:MdrL2NavigationDataScanLine {
-			spacecraft_altitude:mscalt
-		    },
-		    navigation_data_ifov:MdrL2NavigationDataIfov {
-			angular_relation:mang,
-			earth_location:meloc
-		    },
-		    processing_and_quality_flag:MdrL2ProcessingAndQualityFlag {
-			flg_lansea:mlansea
-		    },
-		    error_data:MdrL2ErrorData {
-			temperature_error:merrt,
-			water_vapour_error:merrw,
-			ozone_error:merro
-		    },
-		    ..
-		} = mdr_l2;
-
-		scalt[iline] = mscalt;
-
-		for j in 0..SNOT {
-		    for i in 0..PN {
-			fg_tsurf[[iline,j,i]] = fgts[[j,i]];
-			tsurf[[iline,j,i]] = ts[[j,i]];
-			int_q[[iline,j,i]] = mq[[j,i]];
-			int_o3[[iline,j,i]] = mo3[[j,i]];
-			int_n2o[[iline,j,i]] = mn2o[[j,i]];
-			int_co[[iline,j,i]] = mco[[j,i]];
-			int_ch4[[iline,j,i]] = mch4[[j,i]];
-			int_co2[[iline,j,i]] = mco2[[j,i]];
-			ps[[iline,j,i]] = mps[[j,i]];
-			lansea[[iline,j,i]] = mlansea[[j,i]];
-
-			for k in 0..nang {
-			    ang[[iline,j,i,k]] = mang[[j,i,k]];
-			}
-
-			for k in 0..nloc {
-			    eloc[[iline,j,i,k]] = meloc[[j,i,k]];
-			}
-			
-			for k in 0..nlt {
-			    fg_temp[[iline,j,i,k]] = fgat[[j,i,k]];
-			    temp[[iline,j,i,k]] = at[[j,i,k]];
-			}
-
-			for k in 0..nlq {
-			    fg_q[[iline,j,i,k]] = fgaq[[j,i,k]];
-			    q[[iline,j,i,k]] = aq[[j,i,k]];
-			}
-
-			for k in 0..nlo {
-			    fg_o3[[iline,j,i,k]] = fgao[[j,i,k]];
-			    o3[[iline,j,i,k]] = ao[[j,i,k]];
-			}
-
-			for k in 0..new {
-			    emis[[iline,j,i,k]] = memis[[j,i,k]];
-			}
-
-			for k in 0..ncloud {
-			    cc[[iline,j,i,k]] = mcc[[j,i,k]];
-			}
-
-			for k in 0..nerrt {
-			    errt[[iline,j,i,k]] = merrt[[j,i,k]];
-			}
-
-			for k in 0..nerrw {
-			    errw[[iline,j,i,k]] = merrw[[j,i,k]];
-			}
-
-			for k in 0..nerro {
-			    erro[[iline,j,i,k]] = merro[[j,i,k]];
-			}
-		    }
-		}
-		iline += 1;
+    for iline in 0..nline {
+	let mdr_l2 = nat.read_l2(iline)?;
+	let MdrL2 {
+	    first_guess_profiles:MdrL2FirstGuessProfiles {
+		fg_atmospheric_temperature:fgat,
+		fg_atmospheric_water_vapour:fgaq,
+		fg_atmospheric_ozone:fgao,
+		fg_surface_temperature:fgts,
+		..
 	    },
-	    GrhRecordKind::Mphr => mphr = Some(Mphr::read_bin(&mut br,rec)?),
-	    _ => ()
+	    measurement_data:MdrL2MeasurementData {
+		atmospheric_temperature:at,
+		atmospheric_water_vapour:aq,
+		atmospheric_ozone:ao,
+		surface_temperature:ts,
+		integrated_water_vapour:mq,
+		integrated_ozone:mo3,
+		integrated_n2o:mn2o,
+		integrated_co:mco,
+		integrated_ch4:mch4,
+		integrated_co2:mco2,
+		surface_emissivity:memis,
+		fractional_cloud_cover:mcc,
+		surface_pressure:mps,
+		..
+	    },
+	    navigation_data_scan_line:MdrL2NavigationDataScanLine {
+		spacecraft_altitude:mscalt
+	    },
+	    navigation_data_ifov:MdrL2NavigationDataIfov {
+		angular_relation:mang,
+		earth_location:meloc
+	    },
+	    processing_and_quality_flag:MdrL2ProcessingAndQualityFlag {
+		flg_lansea:mlansea
+	    },
+	    error_data:MdrL2ErrorData {
+		temperature_error:merrt,
+		water_vapour_error:merrw,
+		ozone_error:merro
+	    },
+	    ..
+	} = mdr_l2;
+
+	scalt[iline] = mscalt;
+
+	for j in 0..SNOT {
+	    for i in 0..PN {
+		fg_tsurf[[iline,j,i]] = fgts[[j,i]];
+		tsurf[[iline,j,i]] = ts[[j,i]];
+		int_q[[iline,j,i]] = mq[[j,i]];
+		int_o3[[iline,j,i]] = mo3[[j,i]];
+		int_n2o[[iline,j,i]] = mn2o[[j,i]];
+		int_co[[iline,j,i]] = mco[[j,i]];
+		int_ch4[[iline,j,i]] = mch4[[j,i]];
+		int_co2[[iline,j,i]] = mco2[[j,i]];
+		ps[[iline,j,i]] = mps[[j,i]];
+		lansea[[iline,j,i]] = mlansea[[j,i]];
+
+		for k in 0..nang {
+		    ang[[iline,j,i,k]] = mang[[j,i,k]];
+		}
+
+		for k in 0..nloc {
+		    eloc[[iline,j,i,k]] = meloc[[j,i,k]];
+		}
+		
+		for k in 0..nlt {
+		    fg_temp[[iline,j,i,k]] = fgat[[j,i,k]];
+		    temp[[iline,j,i,k]] = at[[j,i,k]];
+		}
+
+		for k in 0..nlq {
+		    fg_q[[iline,j,i,k]] = fgaq[[j,i,k]];
+		    q[[iline,j,i,k]] = aq[[j,i,k]];
+		}
+
+		for k in 0..nlo {
+		    fg_o3[[iline,j,i,k]] = fgao[[j,i,k]];
+		    o3[[iline,j,i,k]] = ao[[j,i,k]];
+		}
+
+		for k in 0..new {
+		    emis[[iline,j,i,k]] = memis[[j,i,k]];
+		}
+
+		for k in 0..ncloud {
+		    cc[[iline,j,i,k]] = mcc[[j,i,k]];
+		}
+
+		for k in 0..nerrt {
+		    errt[[iline,j,i,k]] = merrt[[j,i,k]];
+		}
+
+		for k in 0..nerrw {
+		    errw[[iline,j,i,k]] = merrw[[j,i,k]];
+		}
+
+		for k in 0..nerro {
+		    erro[[iline,j,i,k]] = merro[[j,i,k]];
+		}
+	    }
 	}
     }
 
-    let mphr = mphr.ok_or_else(|| anyhow!("Could not find MPHR"))?;
+    let mphr = nat.mphr();
     info!("Product name: {}",mphr.product_name);
 
     info!("Creating NetCDF file {:?}",output_path);
@@ -218,6 +195,8 @@ fn run(mut args:Arguments)->Result<()> {
     fd_out.add_dimension("nerrw",nerrw)?;
     fd_out.add_dimension("nerro",nerro)?;
     fd_out.add_dimension("nerr_max",nerr_max)?;
+
+    let giadr = nat.giadr();
 
     let mut var = fd_out.add_variable::<f64>("pressure_levels_temp",&["nlt"])?;
     var.put_values(&giadr.contents.pressure_levels_temp[..],..)?;

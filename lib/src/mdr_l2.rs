@@ -67,7 +67,7 @@ pub struct MdrL2ForliGeneral {
 }
 
 impl MdrL2 {
-    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&GiadrL2)
 				 ->Result<Self>
     {
 	let navigation_data_scan_line =
