@@ -4,7 +4,7 @@ use super::*;
 #[derive(Debug)]
 pub struct GiadrL2 {
     pub contents:GiadrL2Contents,
-    // pub error_data:GiadrL2ErrorData,
+    pub error_data:GiadrL2ErrorData,
     // pub brescia:GiadrL2Brescia,
     // pub forli:GiadrL2Forli,
 }
@@ -40,8 +40,10 @@ pub struct GiadrL2ErrorData {
 impl GiadrL2 {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
 	let contents = GiadrL2Contents::read_bin(rd,rec)?;
+	let error_data = GiadrL2ErrorData::read_bin(rd,rec)?;
 	Ok(Self {
-	    contents
+	    contents,
+	    error_data
 	})
     }
 }
@@ -61,6 +63,20 @@ impl GiadrL2Contents {
 	    pressure_levels_humidity,
 	    pressure_levels_ozone,
 	    surface_emissivity_wavelengths
+	})
+    }
+}
+
+impl GiadrL2ErrorData {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
+	rec.seek_to_record(rd,1284)?;
+	let num_temperature_pcs = u8::read_bin(rd)?;
+	let num_water_vapour_pcs = u8::read_bin(rd)?;
+	let num_ozone_pcs = u8::read_bin(rd)?;
+	Ok(Self {
+	    num_temperature_pcs,
+	    num_water_vapour_pcs,
+	    num_ozone_pcs
 	})
     }
 }

@@ -4,7 +4,8 @@ use super::*;
 pub struct MdrL2 {
     pub measurement_data:MdrL2MeasurementData,
     pub navigation_data_ifov:MdrL2NavigationDataIfov,
-    pub first_guess_profiles:MdrL2FirstGuessProfiles
+    pub first_guess_profiles:MdrL2FirstGuessProfiles,
+    pub error_data:MdrL2ErrorData
 }
 
 #[derive(Debug)]
@@ -38,6 +39,13 @@ pub struct MdrL2FirstGuessProfiles {
     pub fg_surface_temperature:Array2<f64>,
 }
 
+#[derive(Debug)]
+pub struct MdrL2ErrorData {
+    pub temperature_error:Array3<u32>,
+    // pub water_vapour_error:Array2<u32>,
+    // pub ozone_error:Array2<u32>,
+}
+
 impl MdrL2 {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
 				 ->Result<Self>
@@ -48,11 +56,14 @@ impl MdrL2 {
 	    MdrL2MeasurementData::read_bin(rd,giadr,rec)?;
 	let first_guess_profiles =
 	    MdrL2FirstGuessProfiles::read_bin(rd,giadr,rec)?;
+	let error_data =
+	    MdrL2ErrorData::read_bin(rd,giadr,rec)?;
 
 	Ok(Self {
 	    measurement_data,
 	    navigation_data_ifov,
-	    first_guess_profiles
+	    first_guess_profiles,
+	    error_data
 	})
     }
 }
@@ -182,6 +193,38 @@ impl MdrL2FirstGuessProfiles {
 	    fg_atmospheric_water_vapour,
 	    fg_atmospheric_ozone,
 	    fg_surface_temperature,
+	})
+    }
+}
+
+impl MdrL2ErrorData {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+				 ->Result<Self>
+    {
+	rec.seek_to_record(rd,207747)?;
+	let nerr = u8::read_bin(rd)? as usize;
+
+	rec.seek_to_record(rd,207748)?;
+	let idx = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
+
+	let nerrt = giadr.error_data.num_temperature_pcs as usize;
+	
+	rec.seek_to_record(rd,207868)?;
+	let temp_err = read_a2_map(rd,(nerrt,nerr),|&x:&u32|->u32 { x })?;
+
+	let temperature_error = Array3::from_shape_fn(
+	    (SNOT,PN,nerrt),
+	    |(j,i,k)| {
+		let l = idx[[j,i]];
+		if l == u8::MAX {
+		    u32::MAX
+		} else {
+		    temp_err[[k,l as usize]]
+		}
+	    });
+
+	Ok(Self {
+	    temperature_error
 	})
     }
 }
