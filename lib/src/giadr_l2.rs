@@ -14,18 +14,18 @@ pub struct GiadrL2 {
 #[derive(Debug)]
 pub struct GiadrL2Contents {
     /// Pressure levels on which retrieved temperature profiles
-    /// are given [Pa]
+    /// are given (Pa)
     pub pressure_levels_temp:Vec<f64>,
 
     /// Pressure levels on which retrieved humidity profiles
-    /// are given [Pa]
+    /// are given (Pa)
     pub pressure_levels_humidity:Vec<f64>,
 
     /// Pressure levels on which retrieved ozone profiles
-    /// are given [Pa]
+    /// are given (Pa)
     pub pressure_levels_ozone:Vec<f64>,
 
-    /// Wavelengths for surface emissivity [micron]
+    /// Wavelengths for surface emissivity (micron)
     pub surface_emissivity_wavelengths:Vec<f64>,
 }
 

@@ -8,7 +8,20 @@ use std::{
     marker::PhantomData
 };
 
-pub struct LX<G,M> {
+pub enum RecordClassification {
+    Other,
+    Mdr,
+    Giadr
+}
+
+pub trait Level<G> : Sized {
+    fn classify_record(kind:&GrhRecordKind)->RecordClassification;
+    fn read_giadr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<G>;
+    fn read_mdr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&G)
+			     ->Result<Self>;
+}
+
+pub struct LevelReader<G,M> {
     br:BufReader<File>,
     recs:Vec<Grh>,
     irecs:Vec<usize>,
@@ -17,10 +30,10 @@ pub struct LX<G,M> {
     mk:PhantomData<M>
 }
 
-pub type L1C = LX<GiadrL1C,MdrL1C>;
-pub type L2 = LX<GiadrL2,MdrL2>;
+pub type L1CReader = LevelReader<GiadrL1C,MdrL1C>;
+pub type L2Reader = LevelReader<GiadrL2,MdrL2>;
 
-impl<G,M> LX<G,M>
+impl<G,M> LevelReader<G,M>
 where
     M:Level<G>
 {

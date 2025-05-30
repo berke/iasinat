@@ -44,7 +44,7 @@ pub fn run(mut args:Arguments)->Result<()> {
     finish_args(args)?;
 
     info!("Opening NAT file {:?}",input_path);
-    let mut nat = L1C::open(&input_path)?;
+    let mut nat = L1CReader::open(&input_path)?;
 
     let nline = nat.nline();
     info!("Number of L1C records: {}",nline);
@@ -207,6 +207,6 @@ pub fn run(mut args:Arguments)->Result<()> {
 				   [IDefNsFirst,IDefSpectrDWn]")?;
     var.put(wns.view(),..)?;
 
-    add_metadata(&mut fd_out,&mphr,"nat1c-to-netcdf")?;
+    add_metadata(&mut fd_out,mphr,"nat1c-to-netcdf")?;
     Ok(())
 }

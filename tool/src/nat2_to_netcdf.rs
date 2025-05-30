@@ -19,7 +19,7 @@ fn run(mut args:Arguments)->Result<()> {
     finish_args(args)?;
 
     info!("Opening NAT file {:?}",input_path);
-    let mut nat = L2::open(&input_path)?;
+    let mut nat = L2Reader::open(&input_path)?;
 
     let nline = nat.nline();
     info!("Number of L2 records: {}",nline);
@@ -427,6 +427,6 @@ fn run(mut args:Arguments)->Result<()> {
     let _ = fd_out.add_attribute("sensing_end_timestamp",
 				 format!("{}",mphr.sensing_end))?;
 
-    add_metadata(&mut fd_out,&mphr,"nat2-to-netcdf")?;
+    add_metadata(&mut fd_out,mphr,"nat2-to-netcdf")?;
     Ok(())
 }
