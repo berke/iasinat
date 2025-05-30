@@ -94,11 +94,14 @@ fn main()->Result<()> {
 	do_version(args)
     } else {
 	let verbose = args.contains("--verbose");
+	let trace = args.contains("--trace");
 	let help = args.contains("-h") || args.contains("--help");
 	
 	simple_logger::SimpleLogger::new()
-	    .with_level(if verbose { log::LevelFilter::Trace }
-			else { log::LevelFilter::Info })
+	    .with_level(
+		if trace { log::LevelFilter::Trace }
+		else if verbose { log::LevelFilter::Info }
+		else { log::LevelFilter::Warn })
 	    .init()?;
 	match args.subcommand()?.as_deref() {
 	    Some(sc) => {

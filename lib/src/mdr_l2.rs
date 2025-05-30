@@ -13,18 +13,18 @@ pub struct MdrL2 {
 
 #[derive(Debug)]
 pub struct MdrL2MeasurementData {
-    pub atmospheric_temperature:Array3<f64>,
+    pub atmospheric_temperature:Array3<f32>,
     pub atmospheric_water_vapour:Array3<f64>,
-    pub atmospheric_ozone:Array3<f64>,
-    pub surface_temperature:Array2<f64>,
-    pub surface_emissivity:Array3<f64>,
-    pub integrated_water_vapour:Array2<f64>,
-    pub integrated_ozone:Array2<f64>,
-    pub integrated_n2o:Array2<f64>,
-    pub integrated_co:Array2<f64>,
-    pub integrated_ch4:Array2<f64>,
-    pub integrated_co2:Array2<f64>,
-    pub fractional_cloud_cover:Array3<f64>,
+    pub atmospheric_ozone:Array3<f32>,
+    pub surface_temperature:Array2<f32>,
+    pub surface_emissivity:Array3<f32>,
+    pub integrated_water_vapour:Array2<f32>,
+    pub integrated_ozone:Array2<f32>,
+    pub integrated_n2o:Array2<f32>,
+    pub integrated_co:Array2<f32>,
+    pub integrated_ch4:Array2<f32>,
+    pub integrated_co2:Array2<f32>,
+    pub fractional_cloud_cover:Array3<f32>,
     pub surface_pressure:Array2<f64>,
 }
 
@@ -48,10 +48,10 @@ pub struct MdrL2ProcessingAndQualityFlag {
 
 #[derive(Debug)]
 pub struct MdrL2FirstGuessProfiles {
-    pub fg_atmospheric_temperature:Array3<f64>,
+    pub fg_atmospheric_temperature:Array3<f32>,
     pub fg_atmospheric_water_vapour:Array3<f64>,
-    pub fg_atmospheric_ozone:Array3<f64>,
-    pub fg_surface_temperature:Array2<f64>,
+    pub fg_atmospheric_ozone:Array3<f32>,
+    pub fg_surface_temperature:Array2<f32>,
 }
 
 #[derive(Debug)]
@@ -104,7 +104,7 @@ impl MdrL2MeasurementData {
 	rec.seek_to_record(rd,97702)?;
 	let nlt = giadr.contents.pressure_levels_temp.len();
 	let atmospheric_temperature =
-	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f64(x,1e2))?; // XXX: Order
+	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f32(x,1e2))?; // XXX: Order
 
 	rec.seek_to_record(rd,121942)?;
 	let nlt = giadr.contents.pressure_levels_humidity.len();
@@ -114,44 +114,44 @@ impl MdrL2MeasurementData {
 	rec.seek_to_record(rd,170422)?;
 	let nlt = giadr.contents.pressure_levels_ozone.len();
 	let atmospheric_ozone =
-	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f64(x,1e8))?;
+	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f32(x,1e8))?;
 
 	rec.seek_to_record(rd,194662)?;
 	let surface_temperature =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e2))?;
 
 	rec.seek_to_record(rd,194902)?;
 	let integrated_water_vapour =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e2))?;
 
 	rec.seek_to_record(rd,195142)?;
 	let integrated_ozone =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e6))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e6))?;
 
 	rec.seek_to_record(rd,195382)?;
 	let integrated_n2o =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e6))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e6))?;
 
 	rec.seek_to_record(rd,195622)?;
 	let integrated_co =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e7))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e7))?;
 
 	rec.seek_to_record(rd,195862)?;
 	let integrated_ch4 =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e6))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e6))?;
 
 	rec.seek_to_record(rd,196102)?;
 	let integrated_co2 =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e3))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e3))?;
 
 	rec.seek_to_record(rd,196342)?;
 	let new = giadr.contents.surface_emissivity_wavelengths.len();
 	let surface_emissivity =
-	    read_a3_map(rd,(SNOT,PN,new),|&x| u16_to_f64(x,1e4))?;
+	    read_a3_map(rd,(SNOT,PN,new),|&x| u16_to_f32(x,1e4))?;
 
 	rec.seek_to_record(rd,199342)?;
 	let fractional_cloud_cover =
-	    read_a3_map(rd,(SNOT,PN,3),|&x| u16_to_f64(x,1e2))?;
+	    read_a3_map(rd,(SNOT,PN,3),|&x| u16_to_f32(x,1e2))?;
 
 	rec.seek_to_record(rd,202582)?;
 	let surface_pressure =
@@ -230,7 +230,7 @@ impl MdrL2FirstGuessProfiles {
 	rec.seek_to_record(rd,22)?;
 	let nlt = giadr.contents.pressure_levels_temp.len();
 	let fg_atmospheric_temperature =
-	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f64(x,1e2))?; // XXX: Order
+	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f32(x,1e2))?; // XXX: Order
 
 	rec.seek_to_record(rd,24262)?;
 	let nlt = giadr.contents.pressure_levels_humidity.len();
@@ -240,11 +240,11 @@ impl MdrL2FirstGuessProfiles {
 	rec.seek_to_record(rd,72742)?;
 	let nlt = giadr.contents.pressure_levels_ozone.len();
 	let fg_atmospheric_ozone =
-	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f64(x,1e8))?;
+	    read_a3_map(rd,(SNOT,PN,nlt),|&x| u16_to_f32(x,1e8))?;
 
 	rec.seek_to_record(rd,96982)?;
 	let fg_surface_temperature =
-	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f32(x,1e2))?;
 
 	Ok(Self {
 	    fg_atmospheric_temperature,

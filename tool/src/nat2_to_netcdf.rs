@@ -51,26 +51,26 @@ fn run(mut args:Arguments)->Result<()> {
     let nerrw = giadr.error_data.num_water_vapour_pcs as usize;
     let nerro = giadr.error_data.num_ozone_pcs as usize;
 
-    let mut fg_temp : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlt));
+    let mut fg_temp : Array4<f32> = Array4::zeros((nline,SNOT,PN,nlt));
     let mut fg_q : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlq));
-    let mut fg_o3 : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlo));
-    let mut fg_tsurf : Array3<f64> = Array3::zeros((nline,SNOT,PN));
+    let mut fg_o3 : Array4<f32> = Array4::zeros((nline,SNOT,PN,nlo));
+    let mut fg_tsurf : Array3<f32> = Array3::zeros((nline,SNOT,PN));
 
-    let mut temp : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlt));
+    let mut temp : Array4<f32> = Array4::zeros((nline,SNOT,PN,nlt));
     let mut q : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlq));
-    let mut o3 : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlo));
-    let mut tsurf : Array3<f64> = Array3::zeros((nline,SNOT,PN));
-    let mut emis : Array4<f64> = Array4::zeros((nline,SNOT,PN,new));
-    let mut cc : Array4<f64> = Array4::zeros((nline,SNOT,PN,ncloud));
+    let mut o3 : Array4<f32> = Array4::zeros((nline,SNOT,PN,nlo));
+    let mut tsurf : Array3<f32> = Array3::zeros((nline,SNOT,PN));
+    let mut emis : Array4<f32> = Array4::zeros((nline,SNOT,PN,new));
+    let mut cc : Array4<f32> = Array4::zeros((nline,SNOT,PN,ncloud));
     let mut ps : Array3<f64> = Array3::zeros((nline,SNOT,PN));
     let mut lansea : Array3<u8> = Array3::zeros((nline,SNOT,PN));
 
-    let mut int_q : Array3<f64> = Array3::zeros((nline,SNOT,PN));
-    let mut int_o3 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
-    let mut int_n2o : Array3<f64> = Array3::zeros((nline,SNOT,PN));
-    let mut int_co : Array3<f64> = Array3::zeros((nline,SNOT,PN));
-    let mut int_ch4 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
-    let mut int_co2 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
+    let mut int_q : Array3<f32> = Array3::zeros((nline,SNOT,PN));
+    let mut int_o3 : Array3<f32> = Array3::zeros((nline,SNOT,PN));
+    let mut int_n2o : Array3<f32> = Array3::zeros((nline,SNOT,PN));
+    let mut int_co : Array3<f32> = Array3::zeros((nline,SNOT,PN));
+    let mut int_ch4 : Array3<f32> = Array3::zeros((nline,SNOT,PN));
+    let mut int_co2 : Array3<f32> = Array3::zeros((nline,SNOT,PN));
 
     let mut scalt : Array1<f32> = Array1::zeros(nline);
 
@@ -248,9 +248,9 @@ fn run(mut args:Arguments)->Result<()> {
     var.put_attribute("units","micrometer")?;
 
     trace!("Adding FG atmospheric temperature");
-    let mut var = fd_out.add_variable::<f64>("fg_atmospheric_temperature",
+    let mut var = fd_out.add_variable::<f32>("fg_atmospheric_temperature",
 					     &["line","snot","pn","nlt"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(fg_temp.view(),(..,..,..,..))?;
     var.put_attribute("long_name","a-priori temperature profile")?;
     var.put_attribute("units","K")?;
@@ -264,25 +264,25 @@ fn run(mut args:Arguments)->Result<()> {
     var.put_attribute("units","kg/kg")?;
 
     trace!("Adding FG atmospheric ozone");
-    let mut var = fd_out.add_variable::<f64>("fg_atmospheric_ozone",
+    let mut var = fd_out.add_variable::<f32>("fg_atmospheric_ozone",
 					     &["line","snot","pn","nlo"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(fg_o3.view(),(..,..,..,..))?;
     var.put_attribute("long_name","a-priori ozone profile")?;
     var.put_attribute("units","kg/kg")?;
 
     trace!("Adding FG surface temperature");
-    let mut var = fd_out.add_variable::<f64>("fg_surface_temperature",
+    let mut var = fd_out.add_variable::<f32>("fg_surface_temperature",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(fg_tsurf.view(),(..,..,..))?;
     var.put_attribute("long_name","a-priori surface skin temperature")?;
     var.put_attribute("units","K")?;
     
     trace!("Adding atmospheric temperature");
-    let mut var = fd_out.add_variable::<f64>("atmospheric_temperature",
+    let mut var = fd_out.add_variable::<f32>("atmospheric_temperature",
 					     &["line","snot","pn","nlt"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(temp.view(),(..,..,..,..))?;
     var.put_attribute("long_name","temperature profile")?;
     var.put_attribute("units","K")?;
@@ -296,81 +296,81 @@ fn run(mut args:Arguments)->Result<()> {
     var.put_attribute("units","kg/kg")?;
 
     trace!("Adding atmospheric ozone");
-    let mut var = fd_out.add_variable::<f64>("atmospheric_ozone",
+    let mut var = fd_out.add_variable::<f32>("atmospheric_ozone",
 					     &["line","snot","pn","nlo"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(o3.view(),(..,..,..,..))?;
     var.put_attribute("long_name","ozone profile")?;
     var.put_attribute("units","kg/kg")?;
 
     trace!("Adding surface temperature");
-    let mut var = fd_out.add_variable::<f64>("surface_temperature",
+    let mut var = fd_out.add_variable::<f32>("surface_temperature",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(tsurf.view(),(..,..,..))?;
     var.put_attribute("long_name","surface skin temperature")?;
     var.put_attribute("units","K")?;
 
     trace!("Adding integrated water vapour");
-    let mut var = fd_out.add_variable::<f64>("integrated_water_vapour",
+    let mut var = fd_out.add_variable::<f32>("integrated_water_vapour",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(int_q.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated water vapour")?;
     var.put_attribute("units","kg/m^2")?;
 
     trace!("Adding integrated ozone");
-    let mut var = fd_out.add_variable::<f64>("integrated_ozone",
+    let mut var = fd_out.add_variable::<f32>("integrated_ozone",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(int_o3.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated ozone")?;
     var.put_attribute("units","kg/m^2")?;
 
     trace!("Adding integrated N2O");
-    let mut var = fd_out.add_variable::<f64>("integrated_n2o",
+    let mut var = fd_out.add_variable::<f32>("integrated_n2o",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(int_n2o.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated N2O")?;
     var.put_attribute("units","kg/m^2")?;
 
     trace!("Adding integrated CO");
-    let mut var = fd_out.add_variable::<f64>("integrated_co",
+    let mut var = fd_out.add_variable::<f32>("integrated_co",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(int_co.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated CO")?;
     var.put_attribute("units","kg/m^2")?;
 
     trace!("Adding integrated CH4");
-    let mut var = fd_out.add_variable::<f64>("integrated_ch4",
+    let mut var = fd_out.add_variable::<f32>("integrated_ch4",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(int_ch4.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated CH4")?;
     var.put_attribute("units","kg/m^2")?;
 
     trace!("Adding integrated CO2");
-    let mut var = fd_out.add_variable::<f64>("integrated_co2",
+    let mut var = fd_out.add_variable::<f32>("integrated_co2",
 					     &["line","snot","pn"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(int_co2.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated CO2")?;
     var.put_attribute("units","kg/m^2")?;
 
     trace!("Adding surface emissivity");
-    let mut var = fd_out.add_variable::<f64>("surface_emissivity",
+    let mut var = fd_out.add_variable::<f32>("surface_emissivity",
 					     &["line","snot","pn","new"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(emis.view(),(..,..,..,..))?;
     var.put_attribute("long_name","surface emissivity")?;
     var.put_attribute("units","1")?;
 
     trace!("Adding fractional cloud cover");
-    let mut var = fd_out.add_variable::<f64>("fractional_cloud_cover",
+    let mut var = fd_out.add_variable::<f32>("fractional_cloud_cover",
 					     &["line","snot","pn","ncloud"])?;
-    var.set_fill_value(f64::NAN)?;
+    var.set_fill_value(f32::NAN)?;
     var.put(cc.view(),(..,..,..,..))?;
     var.put_attribute("long_name","fractional cloud cover \
 				   (up to 3 cloud formations)")?;
