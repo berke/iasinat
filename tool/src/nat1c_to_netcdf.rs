@@ -87,8 +87,7 @@ pub fn run(mut args:Arguments)->Result<()> {
     let mut wn0_d_wn : Option<(f32,f32)> = None;
 
     for iline in 0..nline {
-	let l1c = nat.read_l1c(iline)?;
-	let l1c_rad = nat.read_l1c_rad(iline)?;
+	let l1c = nat.read_line(iline)?;
 	esds[iline] = l1c.earth_sat_dist as f64;
 
 	for j in 0..SNOT {
@@ -118,11 +117,11 @@ pub fn run(mut args:Arguments)->Result<()> {
 		    flg[[iline,j,i,k]] = l1c.flg[j][i][k];
 		}
 
-		wn0_d_wn = Some((l1c_rad.wn0,l1c_rad.d_wn));
+		wn0_d_wn = Some((l1c.rad.wn0,l1c.rad.d_wn));
 		for k in 0..nchan {
-		    rads[[iline,j,i,k]] = l1c_rad.rad[[ichan0 + k,i,j]];
+		    rads[[iline,j,i,k]] = l1c.rad.rad[[ichan0 + k,i,j]];
 		    if raw_radiances {
-			rads_raw[[iline,j,i,k]] = l1c_rad.rad_i16[[ichan0 + k,i,j]];
+			rads_raw[[iline,j,i,k]] = l1c.rad.rad_i16[[ichan0 + k,i,j]];
 		    }
 		}
 	    }

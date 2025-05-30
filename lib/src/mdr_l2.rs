@@ -66,6 +66,26 @@ pub struct MdrL2ForliGeneral {
     pub surface_z:Array2<f32>
 }
 
+impl Level<GiadrL2> for MdrL2 {
+    fn classify_record(kind:&GrhRecordKind)->RecordClassification {
+	match kind {
+	    GrhRecordKind::MdrL2 => RecordClassification::Mdr,
+	    GrhRecordKind::GiadrL2 => RecordClassification::Giadr,
+	    _ => RecordClassification::Other
+	}
+    }
+
+    fn read_giadr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<GiadrL2> {
+	GiadrL2::read_bin(rd,rec)
+    }
+    
+    fn read_mdr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&GiadrL2)
+			      ->Result<Self>
+    {
+	Self::read_bin(rd,rec,giadr)
+    }
+}
+
 impl MdrL2 {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&GiadrL2)
 				 ->Result<Self>

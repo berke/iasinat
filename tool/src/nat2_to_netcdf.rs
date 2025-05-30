@@ -69,7 +69,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut eloc : Array4<f64> = Array4::zeros((nline,SNOT,PN,nloc));
 
     for iline in 0..nline {
-	let mdr_l2 = nat.read_l2(iline)?;
+	let mdr_l2 = nat.read_line(iline)?;
 	let MdrL2 {
 	    first_guess_profiles:MdrL2FirstGuessProfiles {
 		fg_atmospheric_temperature:fgat,

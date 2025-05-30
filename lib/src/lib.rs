@@ -73,3 +73,16 @@ pub(crate) use timestamp::TimestampParser;
 pub(crate) use read_bin::ReadBinBig;
 pub(crate) use prelude::*;
 pub(crate) use utils::*;
+
+pub enum RecordClassification {
+    Other,
+    Mdr,
+    Giadr
+}
+
+pub trait Level<G> : Sized {
+    fn classify_record(kind:&GrhRecordKind)->RecordClassification;
+    fn read_giadr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<G>;
+    fn read_mdr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&G)
+			     ->Result<Self>;
+}

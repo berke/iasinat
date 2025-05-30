@@ -1,5 +1,26 @@
 use super::*;
 
+impl Level<GiadrScaleFactors> for MdrL1C {
+    fn classify_record(kind:&GrhRecordKind)->RecordClassification {
+	match kind {
+	    GrhRecordKind::MdrL1C => RecordClassification::Mdr,
+	    GrhRecordKind::GiadrScaleFactors => RecordClassification::Giadr,
+	    _ => RecordClassification::Other
+	}
+    }
+
+    fn read_giadr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<GiadrScaleFactors> {
+	GiadrScaleFactors::read_bin(rd,rec)
+    }
+    
+    fn read_mdr<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,giadr:&GiadrScaleFactors)
+			      ->Result<Self>
+    {
+	Self::read_bin(rd,rec,giadr)
+    }
+}
+
+
 #[derive(Debug)]
 pub struct MdrL1C {
     // instrument mode
@@ -31,7 +52,9 @@ pub struct MdrL1C {
     // cloud cover, land fraction, AVHRR 1B qual
     pub sif:[[i8;PN];SNOT],
     // Earth-Satellite distance [m]
-    pub earth_sat_dist:u32
+    pub earth_sat_dist:u32,
+    // Radiances
+    pub rad:MdrL1CRad
 }
 
 #[derive(Debug)]
@@ -88,7 +111,9 @@ pub fn nu_of_channel(nu:usize)->f32 {
 }
 
 impl MdrL1C {
-    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
+				 giadr_sf:&GiadrScaleFactors)->Result<Self>
+    {
 	// rec.seek_to_record(rd)?;
 	let geps_iasi_mode = Self::l1c_get_iasi_mode(rd,rec)?;
 	let geps_sp = Self::l1c_get_sp(rd,rec)?;
@@ -100,6 +125,7 @@ impl MdrL1C {
 	let cds_date = Self::l1c_get_dat_iasi(rd,rec)?;
 	let EumAvhrr { clc,lfr,sif } = Self::l1c_get_eum_avhrr(rd,rec)?;
 	let earth_sat_dist = Self::l1c_get_earth_sat_dist(rd,rec)?;
+	let rad = MdrL1CRad::read_bin(rd,rec,giadr_sf)?;
 	Ok(Self {
 	    geps_iasi_mode,
 	    geps_sp,
@@ -115,7 +141,8 @@ impl MdrL1C {
 	    clc,
 	    lfr,
 	    sif,
-	    earth_sat_dist
+	    earth_sat_dist,
+	    rad
 	})
     }
 
