@@ -31,12 +31,12 @@ pub struct MdrL2MeasurementData {
 #[derive(Debug)]
 pub struct MdrL2NavigationDataScanLine {
     // pub time_attitude:u32,
-    pub spacecraft_altitude:u32
+    pub spacecraft_altitude:f32
 }
 
 #[derive(Debug)]
 pub struct MdrL2NavigationDataIfov {
-    pub angular_relation:Array3<f64>,
+    pub angular_relation:Array3<f32>,
     pub earth_location:Array3<f64>,
 }
 
@@ -183,7 +183,7 @@ impl MdrL2NavigationDataScanLine {
 	// let time_attitude = u32::read_bin(rd)?;
 
 	rec.seek_to_record(rd,203063)?;
-	let spacecraft_altitude = u32::read_bin(rd)?;
+	let spacecraft_altitude = u32::read_bin(rd)? as f32 / 10.0;
 
 	Ok(Self {
 	    // time_attitude,
@@ -199,11 +199,11 @@ impl MdrL2NavigationDataIfov {
 	// rec.seek_to_record(rd,74321)?; // according to L2 PG
 	rec.seek_to_record(rd,203067)?; // according to mod_l1c_l2_reading
 	let angular_relation =
-	    read_a3_map(rd,(PN,SNOT,4),|&x| i16_to_f64(x,1e2))?;
+	    read_a3_map(rd,(SNOT,PN,4),|&x| i16_to_f32(x,1e2))?;
 
 	rec.seek_to_record(rd,204027)?;
 	let earth_location =
-	    read_a3_map(rd,(PN,SNOT,2),|&x| i32_to_f64(x,1e4))?;
+	    read_a3_map(rd,(SNOT,PN,2),|&x| i32_to_f64(x,1e4))?;
 	Ok(Self {
 	    angular_relation,
 	    earth_location

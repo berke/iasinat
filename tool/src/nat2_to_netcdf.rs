@@ -75,7 +75,8 @@ fn run(mut args:Arguments)->Result<()> {
     let nlt = giadr.contents.pressure_levels_temp.len();
     let nlq = giadr.contents.pressure_levels_humidity.len();
     let nlo = giadr.contents.pressure_levels_ozone.len();
-    let new = giadr.contents.pressure_levels_ozone.len();
+    let new = giadr.contents.surface_emissivity_wavelengths.len();
+    let ncloud = 3;
 
     let mut fg_temp : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlt));
     let mut fg_q : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlq));
@@ -86,6 +87,9 @@ fn run(mut args:Arguments)->Result<()> {
     let mut q : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlq));
     let mut o3 : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlo));
     let mut tsurf : Array3<f64> = Array3::zeros((nline,SNOT,PN));
+    let mut emis : Array4<f64> = Array4::zeros((nline,SNOT,PN,new));
+    let mut cc : Array4<f64> = Array4::zeros((nline,SNOT,PN,ncloud));
+    let mut ps : Array3<f64> = Array3::zeros((nline,SNOT,PN));
 
     let mut int_q : Array3<f64> = Array3::zeros((nline,SNOT,PN));
     let mut int_o3 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
@@ -93,6 +97,14 @@ fn run(mut args:Arguments)->Result<()> {
     let mut int_co : Array3<f64> = Array3::zeros((nline,SNOT,PN));
     let mut int_ch4 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
     let mut int_co2 : Array3<f64> = Array3::zeros((nline,SNOT,PN));
+
+    let mut scalt : Array1<f32> = Array1::zeros(nline);
+
+    let nang = 4;
+    let nloc = 2;
+    
+    let mut ang : Array4<f32> = Array4::zeros((nline,SNOT,PN,nang));
+    let mut eloc : Array4<f64> = Array4::zeros((nline,SNOT,PN,nloc));
 
     let mut iline = 0;
 
@@ -126,22 +138,42 @@ fn run(mut args:Arguments)->Result<()> {
 			integrated_co:mco,
 			integrated_ch4:mch4,
 			integrated_co2:mco2,
+			surface_emissivity:memis,
+			fractional_cloud_cover:mcc,
+			surface_pressure:mps,
 			..
+		    },
+		    navigation_data_scan_line:MdrL2NavigationDataScanLine {
+			spacecraft_altitude:mscalt
+		    },
+		    navigation_data_ifov:MdrL2NavigationDataIfov {
+			angular_relation:mang,
+			earth_location:meloc
 		    },
 		    ..
 		} = mdr_l2;
+
+		scalt[iline] = mscalt;
 		for j in 0..SNOT {
 		    for i in 0..PN {
 			fg_tsurf[[iline,j,i]] = fgts[[j,i]];
 			tsurf[[iline,j,i]] = ts[[j,i]];
-
 			int_q[[iline,j,i]] = mq[[j,i]];
 			int_o3[[iline,j,i]] = mo3[[j,i]];
 			int_n2o[[iline,j,i]] = mn2o[[j,i]];
 			int_co[[iline,j,i]] = mco[[j,i]];
 			int_ch4[[iline,j,i]] = mch4[[j,i]];
 			int_co2[[iline,j,i]] = mco2[[j,i]];
+			ps[[iline,j,i]] = mps[[j,i]];
 
+			for k in 0..nang {
+			    ang[[iline,j,i,k]] = mang[[j,i,k]];
+			}
+
+			for k in 0..nloc {
+			    eloc[[iline,j,i,k]] = meloc[[j,i,k]];
+			}
+			
 			for k in 0..nlt {
 			    fg_temp[[iline,j,i,k]] = fgat[[j,i,k]];
 			    temp[[iline,j,i,k]] = at[[j,i,k]];
@@ -153,6 +185,12 @@ fn run(mut args:Arguments)->Result<()> {
 			for k in 0..nlo {
 			    fg_o3[[iline,j,i,k]] = fgao[[j,i,k]];
 			    o3[[iline,j,i,k]] = ao[[j,i,k]];
+			}
+			for k in 0..new {
+			    emis[[iline,j,i,k]] = memis[[j,i,k]];
+			}
+			for k in 0..ncloud {
+			    cc[[iline,j,i,k]] = mcc[[j,i,k]];
 			}
 		    }
 		}
@@ -178,6 +216,9 @@ fn run(mut args:Arguments)->Result<()> {
     fd_out.add_dimension("nlq",nlq)?;
     fd_out.add_dimension("nlo",nlo)?;
     fd_out.add_dimension("new",new)?;
+    fd_out.add_dimension("ncloud",ncloud)?;
+    fd_out.add_dimension("nang",nang)?;
+    fd_out.add_dimension("nloc",nloc)?;
 
     let mut var = fd_out.add_variable::<f64>("pressure_levels_temp",&["nlt"])?;
     var.put_values(&giadr.contents.pressure_levels_temp[..],..)?;
@@ -314,6 +355,59 @@ fn run(mut args:Arguments)->Result<()> {
     var.put(int_co2.view(),(..,..,..))?;
     var.put_attribute("long_name","integrated CO2")?;
     var.put_attribute("units","kg/m^2")?;
+
+    trace!("Adding surface emissivity");
+    let mut var = fd_out.add_variable::<f64>("surface_emissivity",
+					     &["line","snot","pn","new"])?;
+    var.set_fill_value(f64::NAN)?;
+    var.put(emis.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","surface emissivity")?;
+    var.put_attribute("units","1")?;
+
+    trace!("Adding fractional cloud cover");
+    let mut var = fd_out.add_variable::<f64>("fractional_cloud_cover",
+					     &["line","snot","pn","ncloud"])?;
+    var.set_fill_value(f64::NAN)?;
+    var.put(cc.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","fractional cloud cover \
+				   (up to 3 cloud formations)")?;
+    var.put_attribute("units","%")?;
+
+    trace!("Adding surface pressure");
+    let mut var = fd_out.add_variable::<f64>("surface_pressure",
+					     &["line","snot","pn"])?;
+    var.set_fill_value(f64::NAN)?;
+    var.put(ps.view(),(..,..,..))?;
+    var.put_attribute("long_name","surface pressure")?;
+    var.put_attribute("units","Pa")?;
+
+    trace!("Adding spacecraft altitude");
+    let mut var = fd_out.add_variable::<f32>("spacecraft_altitude",
+					     &["line"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(scalt.view(),..)?;
+    var.put_attribute("long_name","spacecraft altitude above reference geoid \
+				   (MSL)")?;
+    var.put_attribute("units","km")?;
+
+    trace!("Adding angular relation");
+    let mut var = fd_out.add_variable::<f32>("angular_relation",
+					     &["line","snot","pn","nang"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(ang.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","angular relationships: solar zenith angle, \
+				   satellite zenith angle, solar azimuth \
+				   angle, satellite azimuth angle")?;
+    var.put_attribute("units","deg")?;
+
+    trace!("Adding earth location");
+    let mut var = fd_out.add_variable::<f64>("earth_location",
+					     &["line","snot","pn","nloc"])?;
+    var.set_fill_value(f64::NAN)?;
+    var.put(eloc.view(),(..,..,..,..))?;
+    var.put_attribute("long_name","earth Location: latitude, longitude of \
+				   surface footprint")?;
+    var.put_attribute("units","deg")?;
 
     add_metadata(&mut fd_out,&mphr,"nat2-to-netcdf")?;
     Ok(())
