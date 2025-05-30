@@ -3,9 +3,12 @@ use super::*;
 #[derive(Debug)]
 pub struct MdrL2 {
     pub measurement_data:MdrL2MeasurementData,
+    pub navigation_data_scan_line:MdrL2NavigationDataScanLine,
     pub navigation_data_ifov:MdrL2NavigationDataIfov,
+    pub processing_and_quality_flag:MdrL2ProcessingAndQualityFlag,
     pub first_guess_profiles:MdrL2FirstGuessProfiles,
-    pub error_data:MdrL2ErrorData
+    pub error_data:MdrL2ErrorData,
+    pub forli_general:MdrL2ForliGeneral
 }
 
 #[derive(Debug)]
@@ -26,10 +29,22 @@ pub struct MdrL2MeasurementData {
 }
 
 #[derive(Debug)]
+pub struct MdrL2NavigationDataScanLine {
+    pub time_attitude:u32,
+    pub spacecraft_altitude:u32
+}
+
+#[derive(Debug)]
 pub struct MdrL2NavigationDataIfov {
     pub angular_relation:Array3<f64>,
     pub earth_location:Array3<f64>,
 }
+
+#[derive(Debug)]
+pub struct MdrL2ProcessingAndQualityFlag {
+    pub flg_lansea:Array2<u8>
+}
+
 
 #[derive(Debug)]
 pub struct MdrL2FirstGuessProfiles {
@@ -46,24 +61,38 @@ pub struct MdrL2ErrorData {
     pub ozone_error:Array3<f32>,
 }
 
+#[derive(Debug)]
+pub struct MdrL2ForliGeneral {
+    pub surface_z:Array2<f32>
+}
+
 impl MdrL2 {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
 				 ->Result<Self>
     {
+	let navigation_data_scan_line =
+	    MdrL2NavigationDataScanLine::read_bin(rd,rec)?;
 	let navigation_data_ifov =
 	    MdrL2NavigationDataIfov::read_bin(rd,rec)?;
+	let processing_and_quality_flag =
+	    MdrL2ProcessingAndQualityFlag::read_bin(rd,rec)?;
 	let measurement_data =
 	    MdrL2MeasurementData::read_bin(rd,giadr,rec)?;
 	let first_guess_profiles =
 	    MdrL2FirstGuessProfiles::read_bin(rd,giadr,rec)?;
 	let error_data =
 	    MdrL2ErrorData::read_bin(rd,giadr,rec)?;
+	let forli_general =
+	    MdrL2ForliGeneral::read_bin(rd,rec)?;
 
 	Ok(Self {
-	    measurement_data,
+	    navigation_data_scan_line,
 	    navigation_data_ifov,
+	    processing_and_quality_flag,
+	    measurement_data,
 	    first_guess_profiles,
-	    error_data
+	    error_data,
+	    forli_general
 	})
     }
 }
@@ -146,6 +175,23 @@ impl MdrL2MeasurementData {
     }
 }
 
+impl MdrL2NavigationDataScanLine {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
+				 ->Result<Self>
+    {
+	rec.seek_to_record(rd,203049)?; // 74303?
+	let time_attitude = u32::read_bin(rd)?;
+
+	rec.seek_to_record(rd,203063)?;
+	let spacecraft_altitude = u32::read_bin(rd)?;
+
+	Ok(Self {
+	    time_attitude,
+	    spacecraft_altitude
+	})
+    }
+}
+
 impl MdrL2NavigationDataIfov {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
 				 ->Result<Self>
@@ -161,6 +207,18 @@ impl MdrL2NavigationDataIfov {
 	Ok(Self {
 	    angular_relation,
 	    earth_location
+	})
+    }
+}
+
+impl MdrL2ProcessingAndQualityFlag {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
+				 ->Result<Self>
+    {
+	rec.seek_to_record(rd,206547)?;
+	let flg_lansea = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
+	Ok(Self {
+	    flg_lansea
 	})
     }
 }
@@ -238,6 +296,18 @@ impl MdrL2ErrorData {
 	    temperature_error,
 	    water_vapour_error,
 	    ozone_error
+	})
+    }
+}
+
+impl MdrL2ForliGeneral {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self>
+    {
+	rec.seek_to_record(rd,283708)?;
+	let surface_z =
+	    read_a2_map(rd,(SNOT,PN),|&x:&i16| i16_to_f32(x,1.0))?;
+	Ok(Self {
+	    surface_z
 	})
     }
 }
