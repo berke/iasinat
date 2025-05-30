@@ -33,36 +33,6 @@ fn run(mut args:Arguments)->Result<()> {
     }).count();
     info!("Number of L2 records: {}",nline);
 
-    // let nchan = ichan1 - ichan0;
-    // info!("Number of selected channels: {}",nchan);
-
-    // let dims = (nline,SNOT,PN);
-
-    // macro_rules! mkv {
-    // 	($name:ident,$t:ty) => {
-    // 	    let mut $name : Array3<$t> = Array3::zeros(dims);
-    // 	};
-    // 	($name:ident,$t:ty,$x:expr) => {
-    // 	    let mut $name : Array3<$t> = Array3::from_elem(dims,$x);
-    // 	}
-    // }
-
-    // mkv!(lon,f32);
-    // mkv!(lat,f32);
-    // mkv!(sza,f32);
-    // mkv!(saa,f32);
-    // mkv!(iza,f32);
-    // mkv!(iaa,f32);
-    // mkv!(clc,i8);
-    // mkv!(lfr,i8);
-    // mkv!(sif,i8);
-
-    // let mut rads : Array4<f32> = Array4::zeros((nline,SNOT,PN,nchan));
-    // let mut esds : Array1<f64> = Array1::zeros(nline);
-
-    // let mut flg : Array4<i8> = Array4::zeros((nline,SNOT,PN,SB));
-    // let mut t0s : Array2<f64> = Array2::zeros((nline,SNOT));
-    // let mut wn0_d_wn : Option<(f32,f32)> = None;
     let mut mphr : Option<Mphr> = None;
 
     // Get GIADR
@@ -120,12 +90,6 @@ fn run(mut args:Arguments)->Result<()> {
     for rec in &recs {
 	trace!("Record: {:#?}",rec);
 	match rec.record_kind {
-	    // GrhRecordKind::GiadrL2 => {
-	    // 	let giadr_l2 = GiadrL2::read_bin(&mut br,rec)?;
-	    // },
-	    // GrhRecordKind::GiadrScaleFactors => {
-	    // 	sf = Some(GiadrScaleFactors::read_bin(&mut br,rec)?);
-	    // },
 	    GrhRecordKind::MdrL2 => {
 		let mdr_l2 = MdrL2::read_bin(&mut br,&giadr,rec)?;
 		let MdrL2 {
