@@ -44,16 +44,9 @@ pub fn run(mut args:Arguments)->Result<()> {
     finish_args(args)?;
 
     info!("Opening NAT file {:?}",input_path);
-    let fd_in = File::open(&input_path)?;
-    let mut br = BufReader::new(fd_in);
-    let recs = Grh::read_recs(&mut br)?;
-    let mut iline : usize = 0;
-    let mut sf = None;
+    let mut nat = L1C::open(&input_path)?;
 
-    // Count number of L1C records
-    let nline = recs.iter().filter(|rec| {
-	matches!(rec.record_kind,GrhRecordKind::MdrL1C)
-    }).count();
+    let nline = nat.nline();
     info!("Number of L1C records: {}",nline);
 
     let nchan = ichan1 - ichan0;
@@ -92,64 +85,47 @@ pub fn run(mut args:Arguments)->Result<()> {
     let mut flg : Array4<i8> = Array4::zeros((nline,SNOT,PN,SB));
     let mut t0s : Array2<f64> = Array2::zeros((nline,SNOT));
     let mut wn0_d_wn : Option<(f32,f32)> = None;
-    let mut mphr : Option<Mphr> = None;
 
-    for rec in &recs {
-	trace!("Record: {:#?}",rec);
-	match rec.record_kind {
-	    GrhRecordKind::GiadrScaleFactors => {
-		sf = Some(GiadrScaleFactors::read_bin(&mut br,rec)?);
-	    },
-	    GrhRecordKind::MdrL1C => {
-		let l1c = MdrL1C::read_bin(&mut br,rec,iline as i32 + 1)?;
-		esds[iline] = l1c.earth_sat_dist as f64;
+    for iline in 0..nline {
+	let l1c = nat.read_l1c(iline)?;
+	let l1c_rad = nat.read_l1c_rad(iline)?;
+	esds[iline] = l1c.earth_sat_dist as f64;
 
-		// let spe = SatPosEstimator::new(height)?;
-		if let Some(sf) = sf.as_ref() {
-		    let l1c_rad = MdrL1CRad::read_bin(&mut br,rec,sf)?;
+	for j in 0..SNOT {
+	    let t0 = l1c.cds_date[j].to_unix();
 
-		    for j in 0..SNOT {
-			let t0 = l1c.cds_date[j].to_unix();
-
-			t0s[[iline,j]] = t0;
-			
-			for i in 0..PN {
-			    let idx = [iline,j,i];
-			    macro_rules! setv {
-				($name:ident) => {
-				    $name[idx] = l1c.$name[j][i];
-				}
-			    }
-
-			    setv!(lon);
-			    setv!(lat);
-			    setv!(sza);
-			    setv!(saa);
-			    setv!(iza);
-			    setv!(iaa);
-			    setv!(lfr);
-			    setv!(sif);
-			    setv!(clc);
-
-			    for k in 0..SB {
-				flg[[iline,j,i,k]] = l1c.flg[j][i][k];
-			    }
-
-			    wn0_d_wn = Some((l1c_rad.wn0,l1c_rad.d_wn));
-			    for k in 0..nchan {
-				rads[[iline,j,i,k]] = l1c_rad.rad[[ichan0 + k,i,j]];
-				if raw_radiances {
-				    rads_raw[[iline,j,i,k]] = l1c_rad.rad_i16[[ichan0 + k,i,j]];
-				}
-			    }
-			}
+	    t0s[[iline,j]] = t0;
+	    
+	    for i in 0..PN {
+		let idx = [iline,j,i];
+		macro_rules! setv {
+		    ($name:ident) => {
+			$name[idx] = l1c.$name[j][i];
 		    }
 		}
 
-		iline += 1;
-	    },
-	    GrhRecordKind::Mphr => mphr = Some(Mphr::read_bin(&mut br,rec)?),
-	    _ => ()
+		setv!(lon);
+		setv!(lat);
+		setv!(sza);
+		setv!(saa);
+		setv!(iza);
+		setv!(iaa);
+		setv!(lfr);
+		setv!(sif);
+		setv!(clc);
+
+		for k in 0..SB {
+		    flg[[iline,j,i,k]] = l1c.flg[j][i][k];
+		}
+
+		wn0_d_wn = Some((l1c_rad.wn0,l1c_rad.d_wn));
+		for k in 0..nchan {
+		    rads[[iline,j,i,k]] = l1c_rad.rad[[ichan0 + k,i,j]];
+		    if raw_radiances {
+			rads_raw[[iline,j,i,k]] = l1c_rad.rad_i16[[ichan0 + k,i,j]];
+		    }
+		}
+	    }
 	}
     }
 
@@ -157,7 +133,7 @@ pub fn run(mut args:Arguments)->Result<()> {
 	anyhow!("Could not determine wavelength range")
     })?;
 
-    let mphr = mphr.ok_or_else(|| anyhow!("Could not find MPHR"))?;
+    let mphr = nat.mphr();
     info!("Product name: {}",mphr.product_name);
 
     info!("Creating NetCDF file {:?}",output_path);

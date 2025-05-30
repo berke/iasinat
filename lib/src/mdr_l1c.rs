@@ -2,8 +2,6 @@ use super::*;
 
 #[derive(Debug)]
 pub struct MdrL1C {
-    // granule line number
-    pub line:i32,
     // instrument mode
     pub geps_iasi_mode:i32,
     // scan position
@@ -90,8 +88,7 @@ pub fn nu_of_channel(nu:usize)->f32 {
 }
 
 impl MdrL1C {
-    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh,
-				 line:i32)->Result<Self> {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self> {
 	// rec.seek_to_record(rd)?;
 	let geps_iasi_mode = Self::l1c_get_iasi_mode(rd,rec)?;
 	let geps_sp = Self::l1c_get_sp(rd,rec)?;
@@ -104,7 +101,6 @@ impl MdrL1C {
 	let EumAvhrr { clc,lfr,sif } = Self::l1c_get_eum_avhrr(rd,rec)?;
 	let earth_sat_dist = Self::l1c_get_earth_sat_dist(rd,rec)?;
 	Ok(Self {
-	    line,
 	    geps_iasi_mode,
 	    geps_sp,
 	    geps_ccd,

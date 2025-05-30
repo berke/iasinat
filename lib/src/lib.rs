@@ -41,6 +41,7 @@ pub use tofas::{
 
 pub mod cds_time;
 pub mod consts;
+pub mod convenience;
 pub mod grh;
 pub mod giadr_l1c;
 pub mod giadr_l2;
@@ -65,6 +66,7 @@ pub mod prelude {
     pub use grh::*;
     pub use nat::*;
     pub use consts::*;
+    pub use convenience::*;
 }
 
 pub(crate) use timestamp::TimestampParser;
