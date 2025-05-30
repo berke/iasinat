@@ -8,14 +8,6 @@ pub fn u16_to_f32(x:u16,s:f32)->f32 {
     }
 }
 
-// pub fn u16_to_f64(x:u16,s:f64)->f64 {
-//     if x == u16::MAX {
-// 	f64::NAN
-//     } else {
-// 	x as f64 / s
-//     }
-// }
-
 pub fn u32_to_f64(x:u32,s:f64)->f64 {
     if x == u32::MAX {
 	f64::NAN
@@ -32,16 +24,8 @@ pub fn i16_to_f32(x:i16,s:f32)->f32 {
     }
 }
 
-// pub fn i16_to_f64(x:i16,s:f64)->f64 {
-//     if x == i16::MIN {
-// 	f64::NAN
-//     } else {
-// 	x as f64 / s
-//     }
-// }
-
 pub fn i32_to_f64(x:i32,s:f64)->f64 {
-    if x == i32::MAX {
+    if x == i32::MIN {
 	f64::NAN
     } else {
 	x as f64 / s
