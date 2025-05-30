@@ -30,7 +30,7 @@ pub struct MdrL2MeasurementData {
 
 #[derive(Debug)]
 pub struct MdrL2NavigationDataScanLine {
-    pub time_attitude:u32,
+    // pub time_attitude:u32,
     pub spacecraft_altitude:u32
 }
 
@@ -179,14 +179,14 @@ impl MdrL2NavigationDataScanLine {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
 				 ->Result<Self>
     {
-	rec.seek_to_record(rd,203049)?; // 74303?
-	let time_attitude = u32::read_bin(rd)?;
+	// rec.seek_to_record(rd,203049)?; // 74303?
+	// let time_attitude = u32::read_bin(rd)?;
 
 	rec.seek_to_record(rd,203063)?;
 	let spacecraft_altitude = u32::read_bin(rd)?;
 
 	Ok(Self {
-	    time_attitude,
+	    // time_attitude,
 	    spacecraft_altitude
 	})
     }
@@ -303,7 +303,8 @@ impl MdrL2ErrorData {
 impl MdrL2ForliGeneral {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self>
     {
-	rec.seek_to_record(rd,283708)?;
+	// rec.seek_to_record(rd,283708)?;
+	rec.seek_to_record(rd,340828)?;
 	let surface_z =
 	    read_a2_map(rd,(SNOT,PN),|&x:&i16| i16_to_f32(x,1.0))?;
 	Ok(Self {
