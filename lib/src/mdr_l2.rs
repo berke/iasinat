@@ -41,9 +41,9 @@ pub struct MdrL2FirstGuessProfiles {
 
 #[derive(Debug)]
 pub struct MdrL2ErrorData {
-    pub temperature_error:Array3<u32>,
-    // pub water_vapour_error:Array2<u32>,
-    // pub ozone_error:Array2<u32>,
+    pub temperature_error:Array3<f32>,
+    pub water_vapour_error:Array3<f32>,
+    pub ozone_error:Array3<f32>,
 }
 
 impl MdrL2 {
@@ -207,24 +207,37 @@ impl MdrL2ErrorData {
 	rec.seek_to_record(rd,207748)?;
 	let idx = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
 
-	let nerrt = giadr.error_data.num_temperature_pcs as usize;
-	
-	rec.seek_to_record(rd,207868)?;
-	let temp_err = read_a2_map(rd,(nerrt,nerr),|&x:&u32|->u32 { x })?;
+	let mut read_error = |nerrt:usize,offset:u64|->Result<Array3<f32>> {
+	    rec.seek_to_record(rd,offset)?;
 
-	let temperature_error = Array3::from_shape_fn(
-	    (SNOT,PN,nerrt),
-	    |(j,i,k)| {
-		let l = idx[[j,i]];
-		if l == u8::MAX {
-		    u32::MAX
-		} else {
-		    temp_err[[k,l as usize]]
-		}
-	    });
+	    let err = read_a2_map(rd,(nerrt,nerr),|&x:&u32|->f32 {
+		f32::from_bits(x) })?;
+
+	    Ok(Array3::from_shape_fn(
+		(SNOT,PN,nerrt),
+		|(j,i,k)| {
+		    let l = idx[[j,i]];
+		    if l == u8::MAX {
+			f32::NAN
+		    } else {
+			err[[k,l as usize]]
+		    }
+		}))
+	};
+
+	let temperature_error =
+	    read_error(giadr.error_data.num_temperature_pcs as usize,207868)?;
+
+	let water_vapour_error =
+	    read_error(giadr.error_data.num_water_vapour_pcs as usize,256588)?;
+
+	let ozone_error =
+	    read_error(giadr.error_data.num_ozone_pcs as usize,277108)?;
 
 	Ok(Self {
-	    temperature_error
+	    temperature_error,
+	    water_vapour_error,
+	    ozone_error
 	})
     }
 }
