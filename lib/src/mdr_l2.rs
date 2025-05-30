@@ -13,7 +13,13 @@ pub struct MdrL2MeasurementData {
     pub atmospheric_water_vapour:Array3<f64>,
     pub atmospheric_ozone:Array3<f64>,
     pub surface_temperature:Array2<f64>,
-    pub surface_emissivity:Array3<f64>
+    pub surface_emissivity:Array3<f64>,
+    pub integrated_water_vapour:Array2<f64>,
+    pub integrated_ozone:Array2<f64>,
+    pub integrated_n2o:Array2<f64>,
+    pub integrated_co:Array2<f64>,
+    pub integrated_ch4:Array2<f64>,
+    pub integrated_co2:Array2<f64>,
 }
 
 #[derive(Debug)]
@@ -72,6 +78,30 @@ impl MdrL2MeasurementData {
 	let surface_temperature =
 	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
 
+	rec.seek_to_record(rd,194902)?;
+	let integrated_water_vapour =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+
+	rec.seek_to_record(rd,195142)?;
+	let integrated_ozone =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e6))?;
+
+	rec.seek_to_record(rd,195382)?;
+	let integrated_n2o =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e6))?;
+
+	rec.seek_to_record(rd,195622)?;
+	let integrated_co =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e7))?;
+
+	rec.seek_to_record(rd,195862)?;
+	let integrated_ch4 =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e6))?;
+
+	rec.seek_to_record(rd,196102)?;
+	let integrated_co2 =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e3))?;
+
 	rec.seek_to_record(rd,196342)?;
 	let new = giadr.contents.surface_emissivity_wavelengths.len();
 	let surface_emissivity =
@@ -82,7 +112,13 @@ impl MdrL2MeasurementData {
 	    atmospheric_water_vapour,
 	    atmospheric_ozone,
 	    surface_temperature,
-	    surface_emissivity
+	    surface_emissivity,
+	    integrated_water_vapour,
+	    integrated_ozone,
+	    integrated_n2o,
+	    integrated_co,
+	    integrated_ch4,
+	    integrated_co2,
 	})
     }
 }
