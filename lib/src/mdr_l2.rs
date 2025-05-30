@@ -3,7 +3,8 @@ use super::*;
 #[derive(Debug)]
 pub struct MdrL2 {
     pub measurement_data:MdrL2MeasurementData,
-    pub navigation_data_ifov:MdrL2NavigationDataIfov
+    pub navigation_data_ifov:MdrL2NavigationDataIfov,
+    pub first_guess_profiles:MdrL2FirstGuessProfiles
 }
 
 #[derive(Debug)]
@@ -21,6 +22,14 @@ pub struct MdrL2NavigationDataIfov {
     pub earth_location:Array3<f64>,
 }
 
+#[derive(Debug)]
+pub struct MdrL2FirstGuessProfiles {
+    pub fg_atmospheric_temperature:Array3<f64>,
+    pub fg_atmospheric_water_vapour:Array3<f64>,
+    pub fg_atmospheric_ozone:Array3<f64>,
+    pub fg_surface_temperature:Array2<f64>,
+}
+
 impl MdrL2 {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
 				 ->Result<Self>
@@ -29,10 +38,13 @@ impl MdrL2 {
 	    MdrL2NavigationDataIfov::read_bin(rd,rec)?;
 	let measurement_data =
 	    MdrL2MeasurementData::read_bin(rd,giadr,rec)?;
+	let first_guess_profiles =
+	    MdrL2FirstGuessProfiles::read_bin(rd,giadr,rec)?;
 
 	Ok(Self {
 	    measurement_data,
-	    navigation_data_ifov
+	    navigation_data_ifov,
+	    first_guess_profiles
 	})
     }
 }
@@ -90,6 +102,38 @@ impl MdrL2NavigationDataIfov {
 	Ok(Self {
 	    angular_relation,
 	    earth_location
+	})
+    }
+}
+
+impl MdrL2FirstGuessProfiles {
+    pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,giadr:&GiadrL2,rec:&Grh)
+				 ->Result<Self>
+    {
+	rec.seek_to_record(rd,22)?;
+	let nlt = giadr.contents.pressure_levels_temp.len();
+	let fg_atmospheric_temperature =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u16_to_f64(x,1e2))?; // XXX: Order
+
+	rec.seek_to_record(rd,24262)?;
+	let nlt = giadr.contents.pressure_levels_humidity.len();
+	let fg_atmospheric_water_vapour =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u32_to_f64(x,1e7))?;
+
+	rec.seek_to_record(rd,72742)?;
+	let nlt = giadr.contents.pressure_levels_ozone.len();
+	let fg_atmospheric_ozone =
+	    read_a3_map(rd,(nlt,SNOT,PN),|&x| u16_to_f64(x,1e8))?;
+
+	rec.seek_to_record(rd,96982)?;
+	let fg_surface_temperature =
+	    read_a2_map(rd,(SNOT,PN),|&x| u16_to_f64(x,1e2))?;
+
+	Ok(Self {
+	    fg_atmospheric_temperature,
+	    fg_atmospheric_water_vapour,
+	    fg_atmospheric_ozone,
+	    fg_surface_temperature,
 	})
     }
 }
