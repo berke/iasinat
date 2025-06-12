@@ -384,7 +384,7 @@ fn run(mut args:Arguments)->Result<()> {
 				   ozone in principal component domain")?;
 
     trace!("Adding lansea");
-    let mut var = fd_out.add_variable::<u8>("flg_lansea",
+    let mut var = fd_out.add_variable::<u8>("flag_lansea",
 					     &["line","snot","pn"])?;
     var.put(lansea.view(),(..,..,..))?;
     var.put_attribute("long_name","surface type")?;

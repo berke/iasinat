@@ -1,6 +1,10 @@
 use super::*;
 
-use netcdf_cmp::NetcdfCmp;
+use netcdf_cmp::{
+    ComparatorU8,
+    ComparatorF64,
+    NetcdfCmp
+};
 
 pub const CMD : Subcommand = Subcommand {
     name:"cmp2-netcdf",
@@ -42,19 +46,29 @@ pub fn run(mut args:Arguments)->Result<()> {
 
     macro_rules! cmp1 {
 	($name:expr,$tol:expr) => {
-	    cmp.compare_1d($name,$name,$tol)?.check()?;
+	    let cp = ComparatorF64::new($tol);
+	    cmp.compare_1d($name,$name,cp)?.check()?;
 	}
     }
 
     macro_rules! cmp23 {
 	($name:expr,$tol:expr) => {
-	    cmp.compare_2d_3d($name,$name,$tol)?.check()?;
+	    let cp = ComparatorF64::new($tol);
+	    cmp.compare_2d_3d($name,$name,cp)?.check()?;
+	}
+    }
+
+    macro_rules! cmp23u8 {
+	($name:expr,$mask:expr) => {
+	    let cp = ComparatorU8::new($mask);
+	    cmp.compare_2d_3d($name,$name,cp)?.check()?;
 	}
     }
 
     macro_rules! cmp34 {
 	($name:expr,$tol:expr) => {
-	    cmp.compare_3d_4d($name,$name,$tol)?.check()?;
+	    let cp = ComparatorF64::new($tol);
+	    cmp.compare_3d_4d($name,$name,cp)?.check()?;
 	}
     }
 
@@ -86,6 +100,7 @@ pub fn run(mut args:Arguments)->Result<()> {
     cmp23!("solar_azimuth",1e-4);
     cmp23!("satellite_zenith",1e-4);
     cmp23!("satellite_azimuth",1e-4);
+    cmp23u8!("flag_lansea",0xff);
 
     Ok(())
 }

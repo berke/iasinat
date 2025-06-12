@@ -8,11 +8,14 @@ mod netcdf_cmp;
 use std::{
     fmt::{
 	Display,
-	Formatter
+	Formatter,
+	Write
     },
     fs::File,
     ffi::OsString,
-    io::BufReader,
+    io::{
+	BufReader,
+    }
 };
 
 use anyhow::{
