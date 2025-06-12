@@ -1,9 +1,15 @@
 mod cmp1c_netcdf;
+mod cmp2_netcdf;
 mod list_recs;
 mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
+mod netcdf_cmp;
 
 use std::{
+    fmt::{
+	Display,
+	Formatter
+    },
     fs::File,
     ffi::OsString,
     io::BufReader,
@@ -18,12 +24,14 @@ use ndarray::{
     Array2,
     Array3,
     Array4,
+    ArrayD,
     Dimension,
 };
 
 use log::{
     trace,
     info,
+    error,
     warn
 };
 
@@ -31,6 +39,11 @@ use pico_args::Arguments;
 
 use iasinat_lib::prelude::*;
 use netcdf as nc;
+
+use nc::{
+    AttributeValue,
+    Variable
+};
 
 pub struct Subcommand {
     pub name:&'static str,
@@ -41,6 +54,7 @@ pub struct Subcommand {
 
 const SUBCMDS : &[&Subcommand] = &[
     &cmp1c_netcdf::CMD,
+    &cmp2_netcdf::CMD,
     &list_recs::CMD,
     &nat1c_to_netcdf::CMD,
     &nat2_to_netcdf::CMD,
