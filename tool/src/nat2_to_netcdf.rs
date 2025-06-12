@@ -398,24 +398,72 @@ fn run(mut args:Arguments)->Result<()> {
 				   (MSL)")?;
     var.put_attribute("units","km")?;
 
-    trace!("Adding angular relation");
-    let mut var = fd_out.add_variable::<f32>("angular_relation",
-					     &["line","snot","pn","nang"])?;
+    trace!("Adding solar_zenith");
+    let mut var = fd_out.add_variable::<f32>("solar_zenith",
+					     &["line","snot","pn"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(ang.view(),(..,..,..,..))?;
-    var.put_attribute("long_name","angular relationships: solar zenith angle, \
-				   satellite zenith angle, solar azimuth \
-				   angle, satellite azimuth angle")?;
-    var.put_attribute("units","deg")?;
+    var.put(ang.slice(s![..,..,..,0])
+	    .as_standard_layout()
+	    .view(),
+	    (..,..,..))?;
+    var.put_attribute("long_name","solar zenith angle")?;
+    var.put_attribute("units","degrees")?;
 
-    trace!("Adding earth location");
-    let mut var = fd_out.add_variable::<f64>("earth_location",
-					     &["line","snot","pn","nloc"])?;
+    trace!("Adding satellite_zenith");
+    let mut var = fd_out.add_variable::<f32>("satellite_zenith",
+					     &["line","snot","pn"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(ang.slice(s![..,..,..,1])
+	    .as_standard_layout()
+	    .view(),
+	    (..,..,..))?;
+    var.put_attribute("long_name","satellite zenith angle")?;
+    var.put_attribute("units","degrees")?;
+
+    trace!("Adding solar_azimuth");
+    let mut var = fd_out.add_variable::<f32>("solar_azimuth",
+					     &["line","snot","pn"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(ang.slice(s![..,..,..,2])
+	    .as_standard_layout()
+	    .view(),
+	    (..,..,..))?;
+    var.put_attribute("long_name","solar azimuth angle")?;
+    var.put_attribute("units","degrees")?;
+
+    trace!("Adding satellite_azimuth");
+    let mut var = fd_out.add_variable::<f32>("satellite_azimuth",
+					     &["line","snot","pn"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(ang.slice(s![..,..,..,3])
+	    .as_standard_layout()
+	    .view(),
+	    (..,..,..))?;
+    var.put_attribute("long_name","satellite azimuth angle")?;
+    var.put_attribute("units","degrees")?;
+
+    //
+    trace!("Adding lat");
+    let mut var = fd_out.add_variable::<f64>("lat",
+					     &["line","snot","pn"])?;
     var.set_fill_value(f64::NAN)?;
-    var.put(eloc.view(),(..,..,..,..))?;
-    var.put_attribute("long_name","earth Location: latitude, longitude of \
-				   surface footprint")?;
-    var.put_attribute("units","deg")?;
+    var.put(eloc.slice(s![..,..,..,0])
+	    .as_standard_layout()
+	    .view(),
+	    (..,..,..))?;
+    var.put_attribute("long_name","latitude")?;
+    var.put_attribute("units","degrees_north")?;
+
+    trace!("Adding lon");
+    let mut var = fd_out.add_variable::<f64>("lon",
+					     &["line","snot","pn"])?;
+    var.set_fill_value(f64::NAN)?;
+    var.put(eloc.slice(s![..,..,..,1])
+	    .as_standard_layout()
+	    .view(),
+	    (..,..,..))?;
+    var.put_attribute("long_name","longitude")?;
+    var.put_attribute("units","degrees_east")?;
 
     trace!("Adding sensing start and end");
     let _ = fd_out.add_attribute("sensing_start_unix",

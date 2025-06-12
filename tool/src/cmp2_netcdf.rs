@@ -80,6 +80,12 @@ pub fn run(mut args:Arguments)->Result<()> {
     cmp23!("integrated_co",1e-6);
     cmp23!("integrated_ch4",1e-6);
     cmp23!("integrated_co2",1e-6);
+    cmp23!("lat",1e-9);
+    cmp23!("lon",1e-9);
+    cmp23!("solar_zenith",1e-4);
+    cmp23!("solar_azimuth",1e-4);
+    cmp23!("satellite_zenith",1e-4);
+    cmp23!("satellite_azimuth",1e-4);
 
     Ok(())
 }
