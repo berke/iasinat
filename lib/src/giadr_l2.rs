@@ -79,4 +79,15 @@ impl GiadrL2ErrorData {
 	    num_ozone_pcs
 	})
     }
+
+    fn ntri(n:u8)->usize {
+	let n = n as usize;
+	(n*(n + 1))/2
+    }
+
+    pub fn nerrt(&self)->usize { Self::ntri(self.num_temperature_pcs) }
+
+    pub fn nerrw(&self)->usize { Self::ntri(self.num_water_vapour_pcs) }
+
+    pub fn nerro(&self)->usize { Self::ntri(self.num_ozone_pcs) }
 }

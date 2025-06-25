@@ -30,9 +30,15 @@ fn run(mut args:Arguments)->Result<()> {
     let nlo = giadr.contents.pressure_levels_ozone.len();
     let new = giadr.contents.surface_emissivity_wavelengths.len();
     let ncloud = 3;
-    let nerrt = giadr.error_data.num_temperature_pcs as usize;
-    let nerrw = giadr.error_data.num_water_vapour_pcs as usize;
-    let nerro = giadr.error_data.num_ozone_pcs as usize;
+
+    let nerrt = giadr.error_data.nerrt();
+    let nerrw = giadr.error_data.nerrw();
+    let nerro = giadr.error_data.nerro();
+
+    info!("NERRT={}, NERRW={}, NERRO={}",
+	  nerrt,
+	  nerrw,
+	  nerro);
 
     let mut fg_temp : Array4<f32> = Array4::zeros((nline,SNOT,PN,nlt));
     let mut fg_q : Array4<f64> = Array4::zeros((nline,SNOT,PN,nlq));
@@ -57,10 +63,10 @@ fn run(mut args:Arguments)->Result<()> {
 
     let mut scalt : Array1<f32> = Array1::zeros(nline);
 
-    let nerr_max = 255;
-    let mut errt : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrt));
-    let mut errw : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrw));
-    let mut erro : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerro));
+    let nerr_limit = 255;
+    let mut errt : Array3<f32> = Array3::zeros((nline,nerrt,nerr_limit));
+    let mut errw : Array3<f32> = Array3::zeros((nline,nerrw,nerr_limit));
+    let mut erro : Array3<f32> = Array3::zeros((nline,nerro,nerr_limit));
 
     let nang = 4;
     let nloc = 2;
@@ -68,6 +74,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut ang : Array4<f32> = Array4::zeros((nline,SNOT,PN,nang));
     let mut eloc : Array4<f64> = Array4::zeros((nline,SNOT,PN,nloc));
 
+    let mut nerr_max = 0;
     for iline in 0..nline {
 	let mdr_l2 = nat.read_line(iline)?;
 	let MdrL2 {
@@ -105,6 +112,7 @@ fn run(mut args:Arguments)->Result<()> {
 		flg_lansea:mlansea
 	    },
 	    error_data:MdrL2ErrorData {
+		error_data_index:_,
 		temperature_error:merrt,
 		water_vapour_error:merrw,
 		ozone_error:merro
@@ -113,6 +121,28 @@ fn run(mut args:Arguments)->Result<()> {
 	} = mdr_l2;
 
 	scalt[iline] = mscalt;
+
+	let (_,nerr) = merrt.dim();
+	nerr_max = nerr_max.max(nerr);
+	trace!("Line {} NERR={}",iline,nerr);
+
+	for j in 0..nerrt {
+	    for i in 0..nerr {
+		errt[[iline,j,i]] = merrt[[j,i]];
+	    }
+	}
+
+	for j in 0..nerrw {
+	    for i in 0..nerr {
+		errw[[iline,j,i]] = merrw[[j,i]];
+	    }
+	}
+
+	for j in 0..nerro {
+	    for i in 0..nerr {
+		erro[[iline,j,i]] = merro[[j,i]];
+	    }
+	}
 
 	for j in 0..SNOT {
 	    for i in 0..PN {
@@ -157,18 +187,6 @@ fn run(mut args:Arguments)->Result<()> {
 		for k in 0..ncloud {
 		    cc[[iline,j,i,k]] = mcc[[j,i,k]];
 		}
-
-		for k in 0..nerrt {
-		    errt[[iline,j,i,k]] = merrt[[j,i,k]];
-		}
-
-		for k in 0..nerrw {
-		    errw[[iline,j,i,k]] = merrw[[j,i,k]];
-		}
-
-		for k in 0..nerro {
-		    erro[[iline,j,i,k]] = merro[[j,i,k]];
-		}
 	    }
 	}
     }
@@ -194,7 +212,7 @@ fn run(mut args:Arguments)->Result<()> {
     fd_out.add_dimension("nerrt",nerrt)?;
     fd_out.add_dimension("nerrw",nerrw)?;
     fd_out.add_dimension("nerro",nerro)?;
-    fd_out.add_dimension("nerr_max",nerr_max)?;
+    fd_out.add_dimension("nerr",nerr_max)?;
 
     let giadr = nat.giadr();
 
@@ -361,25 +379,34 @@ fn run(mut args:Arguments)->Result<()> {
 
     trace!("Adding temperature error");
     let mut var = fd_out.add_variable::<f32>("temperature_error",
-					     &["line","snot","pn","nerrt"])?;
+					     &["line","nerrt","nerr"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(errt.view(),(..,..,..,..))?;
+    var.put(errt
+	    .slice(s![..,..,0..nerr_max])
+	    .as_standard_layout()
+	    .view(),(..,..,..))?;
     var.put_attribute("long_name","retrieval error covariance matrix for \
 				   temperature in principal component domain")?;
 
     trace!("Adding water vapour error");
     let mut var = fd_out.add_variable::<f32>("water_vapour_error",
-					     &["line","snot","pn","nerrw"])?;
+					     &["line","nerrw","nerr"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(errw.view(),(..,..,..,..))?;
+    var.put(errw
+	    .slice(s![..,..,0..nerr_max])
+	    .as_standard_layout()
+	    .view(),(..,..,..))?;
     var.put_attribute("long_name","retrieval error covariance matrix for \
 				   water vapour in principal component domain")?;
 
     trace!("Adding ozone error");
     let mut var = fd_out.add_variable::<f32>("ozone_error",
-					     &["line","snot","pn","nerro"])?;
+					     &["line","nerro","nerr"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(erro.view(),(..,..,..,..))?;
+    var.put(erro
+	    .slice(s![..,..,0..nerr_max])
+	    .as_standard_layout()
+	    .view(),(..,..,..))?;
     var.put_attribute("long_name","retrieval error covariance matrix for \
 				   ozone in principal component domain")?;
 

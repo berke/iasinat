@@ -113,11 +113,13 @@ fn main()->Result<()> {
     } else {
 	let verbose = args.contains("--verbose");
 	let trace = args.contains("--trace");
+	let debug = args.contains("--debug");
 	let help = args.contains("-h") || args.contains("--help");
 	
 	simple_logger::SimpleLogger::new()
 	    .with_level(
 		if trace { log::LevelFilter::Trace }
+		else if debug { log::LevelFilter::Debug }
 		else if verbose { log::LevelFilter::Info }
 		else { log::LevelFilter::Warn })
 	    .init()?;
