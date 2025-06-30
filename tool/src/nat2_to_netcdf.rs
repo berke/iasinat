@@ -52,7 +52,9 @@ fn run(mut args:Arguments)->Result<()> {
     let mut emis : Array4<f32> = Array4::zeros((nline,SNOT,PN,new));
     let mut cc : Array4<f32> = Array4::zeros((nline,SNOT,PN,ncloud));
     let mut ps : Array3<f64> = Array3::zeros((nline,SNOT,PN));
+    let mut itconv : Array3<u8> = Array3::zeros((nline,SNOT,PN));
     let mut lansea : Array3<u8> = Array3::zeros((nline,SNOT,PN));
+    let mut retcheck : Array3<u16> = Array3::zeros((nline,SNOT,PN));
 
     let mut int_q : Array3<f32> = Array3::zeros((nline,SNOT,PN));
     let mut int_o3 : Array3<f32> = Array3::zeros((nline,SNOT,PN));
@@ -63,10 +65,9 @@ fn run(mut args:Arguments)->Result<()> {
 
     let mut scalt : Array1<f32> = Array1::zeros(nline);
 
-    let nerr_limit = 255;
-    let mut errt : Array3<f32> = Array3::zeros((nline,nerrt,nerr_limit));
-    let mut errw : Array3<f32> = Array3::zeros((nline,nerrw,nerr_limit));
-    let mut erro : Array3<f32> = Array3::zeros((nline,nerro,nerr_limit));
+    let mut errt : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrt));
+    let mut errw : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrw));
+    let mut erro : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerro));
 
     let nang = 4;
     let nloc = 2;
@@ -109,7 +110,9 @@ fn run(mut args:Arguments)->Result<()> {
 		earth_location:meloc
 	    },
 	    processing_and_quality_flag:MdrL2ProcessingAndQualityFlag {
-		flg_lansea:mlansea
+		flg_itconv:mitconv,
+		flg_lansea:mlansea,
+		flg_retcheck:mretcheck
 	    },
 	    error_data:MdrL2ErrorData {
 		error_data_index:_,
@@ -122,27 +125,12 @@ fn run(mut args:Arguments)->Result<()> {
 
 	scalt[iline] = mscalt;
 
-	let (_,nerr) = merrt.dim();
+	let (_,_,nerr) = merrt.dim();
 	nerr_max = nerr_max.max(nerr);
 	trace!("Line {} NERR={}",iline,nerr);
-
-	for j in 0..nerrt {
-	    for i in 0..nerr {
-		errt[[iline,j,i]] = merrt[[j,i]];
-	    }
-	}
-
-	for j in 0..nerrw {
-	    for i in 0..nerr {
-		errw[[iline,j,i]] = merrw[[j,i]];
-	    }
-	}
-
-	for j in 0..nerro {
-	    for i in 0..nerr {
-		erro[[iline,j,i]] = merro[[j,i]];
-	    }
-	}
+        trace!("Itconv: {:?}",mitconv);
+        trace!("Lansea: {:?}",mlansea);
+        trace!("Retcheck: {:?}",mretcheck);
 
 	for j in 0..SNOT {
 	    for i in 0..PN {
@@ -155,7 +143,9 @@ fn run(mut args:Arguments)->Result<()> {
 		int_ch4[[iline,j,i]] = mch4[[j,i]];
 		int_co2[[iline,j,i]] = mco2[[j,i]];
 		ps[[iline,j,i]] = mps[[j,i]];
+		itconv[[iline,j,i]] = mitconv[[j,i]];
 		lansea[[iline,j,i]] = mlansea[[j,i]];
+		retcheck[[iline,j,i]] = mretcheck[[j,i]];
 
 		for k in 0..nang {
 		    ang[[iline,j,i,k]] = mang[[j,i,k]];
@@ -187,6 +177,18 @@ fn run(mut args:Arguments)->Result<()> {
 		for k in 0..ncloud {
 		    cc[[iline,j,i,k]] = mcc[[j,i,k]];
 		}
+
+                for k in 0..nerrt {
+                    errt[[iline,j,i,k]] = merrt[[j,i,k]];
+                }
+
+                for k in 0..nerrw {
+                    errw[[iline,j,i,k]] = merrw[[j,i,k]];
+                }
+
+                for k in 0..nerro {
+                    erro[[iline,j,i,k]] = merro[[j,i,k]];
+                }
 	    }
 	}
     }
@@ -212,7 +214,6 @@ fn run(mut args:Arguments)->Result<()> {
     fd_out.add_dimension("nerrt",nerrt)?;
     fd_out.add_dimension("nerrw",nerrw)?;
     fd_out.add_dimension("nerro",nerro)?;
-    fd_out.add_dimension("nerr",nerr_max)?;
 
     let giadr = nat.giadr();
 
@@ -379,42 +380,46 @@ fn run(mut args:Arguments)->Result<()> {
 
     trace!("Adding temperature error");
     let mut var = fd_out.add_variable::<f32>("temperature_error",
-					     &["line","nerrt","nerr"])?;
+					     &["line","snot","pn","nerrt"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(errt
-	    .slice(s![..,..,0..nerr_max])
-	    .as_standard_layout()
-	    .view(),(..,..,..))?;
+    var.put(errt.view(),(..,..,..,..))?;
     var.put_attribute("long_name","retrieval error covariance matrix for \
 				   temperature in principal component domain")?;
 
     trace!("Adding water vapour error");
     let mut var = fd_out.add_variable::<f32>("water_vapour_error",
-					     &["line","nerrw","nerr"])?;
+					     &["line","snot","pn","nerrw"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(errw
-	    .slice(s![..,..,0..nerr_max])
-	    .as_standard_layout()
-	    .view(),(..,..,..))?;
+    var.put(errw.view(),(..,..,..,..))?;
     var.put_attribute("long_name","retrieval error covariance matrix for \
 				   water vapour in principal component domain")?;
 
     trace!("Adding ozone error");
     let mut var = fd_out.add_variable::<f32>("ozone_error",
-					     &["line","nerro","nerr"])?;
+					     &["line","snot","pn","nerro"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(erro
-	    .slice(s![..,..,0..nerr_max])
-	    .as_standard_layout()
-	    .view(),(..,..,..))?;
+    var.put(erro.view(),(..,..,..,..))?;
     var.put_attribute("long_name","retrieval error covariance matrix for \
 				   ozone in principal component domain")?;
+
+    trace!("Adding itconv");
+    let mut var = fd_out.add_variable::<u8>("flag_itconv",
+					     &["line","snot","pn"])?;
+    var.put(itconv.view(),(..,..,..))?;
+    var.put_attribute("long_name","convergence of the iterative retrieval")?;
 
     trace!("Adding lansea");
     let mut var = fd_out.add_variable::<u8>("flag_lansea",
 					     &["line","snot","pn"])?;
     var.put(lansea.view(),(..,..,..))?;
     var.put_attribute("long_name","surface type")?;
+
+    trace!("Adding retcheck");
+    let mut var = fd_out.add_variable::<u16>("flag_retcheck",
+					     &["line","snot","pn"])?;
+    var.put(retcheck.view(),(..,..,..))?;
+    var.put_attribute("long_name","check that geophysical parameters from the \
+                                   OEM are within bounds")?;
 
     trace!("Adding spacecraft altitude");
     let mut var = fd_out.add_variable::<f32>("spacecraft_altitude",

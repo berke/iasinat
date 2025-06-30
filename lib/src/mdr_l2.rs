@@ -42,7 +42,9 @@ pub struct MdrL2NavigationDataIfov {
 
 #[derive(Debug)]
 pub struct MdrL2ProcessingAndQualityFlag {
-    pub flg_lansea:Array2<u8>
+    pub flg_retcheck:Array2<u16>,
+    pub flg_lansea:Array2<u8>,
+    pub flg_itconv:Array2<u8>,
 }
 
 
@@ -57,9 +59,9 @@ pub struct MdrL2FirstGuessProfiles {
 #[derive(Debug)]
 pub struct MdrL2ErrorData {
     pub error_data_index:Array2<u8>,
-    pub temperature_error:Array2<f32>,
-    pub water_vapour_error:Array2<f32>,
-    pub ozone_error:Array2<f32>,
+    pub temperature_error:Array3<f32>,
+    pub water_vapour_error:Array3<f32>,
+    pub ozone_error:Array3<f32>,
 }
 
 #[derive(Debug)]
@@ -216,10 +218,19 @@ impl MdrL2ProcessingAndQualityFlag {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)
 				 ->Result<Self>
     {
+	rec.seek_to_record(rd,206427)?;
+	let flg_itconv = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
+
 	rec.seek_to_record(rd,206547)?;
 	let flg_lansea = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
+
+	rec.seek_to_record(rd,207147)?;
+	let flg_retcheck = read_a2_map(rd,(SNOT,PN),|&x:&u16|->u16 { x })?;
+
 	Ok(Self {
-	    flg_lansea
+            flg_itconv,
+	    flg_lansea,
+            flg_retcheck,
 	})
     }
 }
@@ -266,21 +277,50 @@ impl MdrL2ErrorData {
 	rec.seek_to_record(rd,207748)?;
 	let error_data_index = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
 
-	let mut read_error = |nerrt:usize,offset:u64|->Result<Array2<f32>> {
-	    rec.seek_to_record(rd,offset)?;
+        debug!("Error data index: {:?}",error_data_index);
+        let edi_max = error_data_index.iter().fold(255,|q,&i| {
+            if i == 255 {
+                q
+            } else {
+                if q == 255 {
+                    i
+                } else {
+                    q.max(i)
+                }
+            }
+        });
+        debug!("Max. error data index: {}",edi_max);
+        if edi_max != 255 {
+            assert!(edi_max as usize + 1 == nerr);
+        }
 
-	    let err = read_a2_map(rd,(nerrt,nerr),|&x:&u32|->f32 {
+	rec.seek_to_record(rd,207868)?;
+
+	let mut read_error = |nerrx:usize|->
+            Result<Array3<f32>>
+        {
+	    let err = read_a2_map(rd,(nerr,nerrx),|&x:&u32|->f32 {
 		f32::from_bits(x) })?;
-	    Ok(err)
+
+            Ok(Array3::from_shape_fn(
+                (SNOT,PN,nerrx),
+                |(j,i,k)| {
+                    let l = error_data_index[[j,i]];
+                    if l == u8::MAX {
+                        f32::NAN
+                    } else {
+                        err[[l as usize,k]]
+                    }
+                }))
 	};
 
 	let nerrt = giadr.error_data.nerrt();
 	let nerrw = giadr.error_data.nerrw();
 	let nerro = giadr.error_data.nerro();
 
-	let temperature_error = read_error(nerrt,207868)?;
-	let water_vapour_error = read_error(nerrw,256588)?;
-	let ozone_error = read_error(nerro,277108)?;
+	let temperature_error = read_error(nerrt)?;
+	let water_vapour_error = read_error(nerrw)?;
+	let ozone_error = read_error(nerro)?;
 
 	Ok(Self {
 	    error_data_index,
