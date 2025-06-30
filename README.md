@@ -16,15 +16,35 @@ on the needs of the SWIR-TIR and related projects.
 
 The library can read MPHR, GIADR and MDR records.
 
-This tool is in alpha version.  The output has not yet been
-extensively checked.
+This tool is in beta version.  The outputs of this tool have been
+compared, on a small number of NAT files to NetCDF files provided by
+EUMETSAT or converted using CODA.
 
-The L1C NetCDF output has been compared to an EUMETSAT NetCDF file and
-has been found to be in agreement.  However the EUMETSAT file contents
-are partial.
+### Level 1C
 
-The code converts L1C raw measurements to spectral radiances using the
-conversion factors.
+The L1C NetCDF output from this tool has been found to be in agreement
+with NetCDF files provided by EUMETSAT, but the files are partial, as
+some of the information present in the NAT files is not present in the
+NetCDF files.
+
+The iasinat tool converts L1C raw measurements to spectral radiances
+using the conversion factors.
+
+### Level 2
+
+As for level 1C, the level 2 output is partial (but fairly complete) and
+is in complete agreement with the EUMETSAT Level2 output, as well as
+CODA output, except for the error data.
+
+The current EUMETSAT L2 product format specification and product guide
+documents incorrectly describe the error data records.  Contrary to
+what is stated in these documents, the data records for temperature,
+water vapour and ozone do not have fixed sizes.  The CODA description
+handles these variable-length records, but fails to reorder the
+vectors so that they can be attributed to individual pixels.
+
+This tool handles both issues, but due to a lack of information we
+have not yet been able to fully validate its output.
 
 ## Build instructions for the tool
 
