@@ -281,15 +281,13 @@ impl MdrL2ErrorData {
         let edi_max = error_data_index.iter().fold(255,|q,&i| {
             if i == 255 {
                 q
+            } else if q == 255 {
+                i
             } else {
-                if q == 255 {
-                    i
-                } else {
-                    q.max(i)
-                }
+                q.max(i)
             }
         });
-        debug!("Max. error data index: {}",edi_max);
+
         if edi_max != 255 {
             assert!(edi_max as usize + 1 == nerr);
         }
