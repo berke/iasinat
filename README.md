@@ -73,6 +73,13 @@ operations.
 
 For using the library in your Rust project, simply do `cargo add iasinat`
 
+## Version history
+
+| Version | Date       | Comment         |
+|---------|------------|-----------------|
+| 0.1.0   | 2025-06-30 | Initial release |
+| 0.1.1   | 2025-07-15 | Add surface_z   |
+
 ## Author
 
 Berke DURAK <bd@exhrd.fr>

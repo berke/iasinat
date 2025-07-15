@@ -3,7 +3,7 @@ resolver = "2"
 members = ["lib","tool"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Berke DURAK <bd@exhrd.fr>"]
 description = "Reader for IASI NAT L1C and L2 files"
