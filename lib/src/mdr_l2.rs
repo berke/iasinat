@@ -85,6 +85,7 @@ impl MdrL2 {
 	    MdrL2FirstGuessProfiles::read_bin(rd,giadr,rec)?;
 	let error_data =
 	    MdrL2ErrorData::read_bin(rd,giadr,rec)?;
+        // Warning: Sequential, not fixed offset!
 	let forli_general =
 	    MdrL2ForliGeneral::read_bin(rd,rec)?;
 
@@ -272,12 +273,13 @@ impl MdrL2ErrorData {
 				 ->Result<Self>
     {
 	rec.seek_to_record(rd,207747)?;
+        trace!("Reading nerr at {}",rec.position_in_record(rd)?);
 	let nerr = u8::read_bin(rd)? as usize;
 
 	rec.seek_to_record(rd,207748)?;
 	let error_data_index = read_a2_map(rd,(SNOT,PN),|&x:&u8|->u8 { x })?;
 
-        debug!("Error data index: {:?}",error_data_index);
+        // debug!("Error data index: {:?}",error_data_index);
         let edi_max = error_data_index.iter().fold(255,|q,&i| {
             if i == 255 {
                 q
@@ -333,7 +335,8 @@ impl MdrL2ForliGeneral {
     pub fn read_bin<R:Read+Seek>(rd:&mut NatReader<R>,rec:&Grh)->Result<Self>
     {
 	// rec.seek_to_record(rd,283708)?;
-	rec.seek_to_record(rd,340828)?;
+	// rec.seek_to_record(rd,340828)?;
+        trace!("Reading surface_z at {}",rec.position_in_record(rd)?);
 	let surface_z =
 	    read_a2_map(rd,(SNOT,PN),|&x:&i16| i16_to_f32(x,1.0))?;
 	Ok(Self {

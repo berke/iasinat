@@ -87,6 +87,7 @@ pub fn run(mut args:Arguments)->Result<()> {
     cmp34!("fractional_cloud_cover",1e-4);
     cmp23!("surface_temperature",1e-4);
     cmp23!("surface_pressure",1e-6);
+    cmp23!("surface_z",1e-6);
     cmp23!("fg_surface_temperature",1e-4);
     cmp23!("integrated_water_vapour",1e-4);
     cmp23!("integrated_ozone",1e-6);

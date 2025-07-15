@@ -125,6 +125,11 @@ impl Grh {
 	Ok(())
     }
 
+    pub fn position_in_record<R:Seek>(&self,rd:&mut NatReader<R>)->Result<i64> {
+	let pos = rd.stream_position()?;
+        Ok(pos as i64 - self.record_pos as i64)
+    }
+
     pub fn read_bin<R:Read+Seek>(mut rd:&mut NatReader<R>)->Result<Self> {
 	let record_pos = rd.stream_position()?;
 	let class = i8::read_bin(&mut rd)?;

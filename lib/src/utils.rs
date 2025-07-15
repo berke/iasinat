@@ -17,7 +17,7 @@ pub fn u32_to_f64(x:u32,s:f64)->f64 {
 }
 
 pub fn i16_to_f32(x:i16,s:f32)->f32 {
-    if x == i16::MIN {
+    if x == i16::MIN || x == i16::MAX {
 	f32::NAN
     } else {
 	x as f32 / s

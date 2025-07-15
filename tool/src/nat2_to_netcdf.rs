@@ -55,6 +55,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut itconv : Array3<u8> = Array3::zeros((nline,SNOT,PN));
     let mut lansea : Array3<u8> = Array3::zeros((nline,SNOT,PN));
     let mut retcheck : Array3<u16> = Array3::zeros((nline,SNOT,PN));
+    let mut surface_z : Array3<f32> = Array3::zeros((nline,SNOT,PN));
 
     let mut int_q : Array3<f32> = Array3::zeros((nline,SNOT,PN));
     let mut int_o3 : Array3<f32> = Array3::zeros((nline,SNOT,PN));
@@ -120,6 +121,9 @@ fn run(mut args:Arguments)->Result<()> {
 		water_vapour_error:merrw,
 		ozone_error:merro
 	    },
+            forli_general:MdrL2ForliGeneral {
+                surface_z:sz
+            },
 	    ..
 	} = mdr_l2;
 
@@ -127,10 +131,10 @@ fn run(mut args:Arguments)->Result<()> {
 
 	let (_,_,nerr) = merrt.dim();
 	nerr_max = nerr_max.max(nerr);
-	trace!("Line {} NERR={}",iline,nerr);
-        trace!("Itconv: {:?}",mitconv);
-        trace!("Lansea: {:?}",mlansea);
-        trace!("Retcheck: {:?}",mretcheck);
+	// trace!("Line {} NERR={}",iline,nerr);
+        // trace!("Itconv: {:?}",mitconv);
+        // trace!("Lansea: {:?}",mlansea);
+        // trace!("Retcheck: {:?}",mretcheck);
 
 	for j in 0..SNOT {
 	    for i in 0..PN {
@@ -146,6 +150,7 @@ fn run(mut args:Arguments)->Result<()> {
 		itconv[[iline,j,i]] = mitconv[[j,i]];
 		lansea[[iline,j,i]] = mlansea[[j,i]];
 		retcheck[[iline,j,i]] = mretcheck[[j,i]];
+		surface_z[[iline,j,i]] = sz[[j,i]];
 
 		for k in 0..nang {
 		    ang[[iline,j,i,k]] = mang[[j,i,k]];
@@ -377,6 +382,14 @@ fn run(mut args:Arguments)->Result<()> {
     var.put(ps.view(),(..,..,..))?;
     var.put_attribute("long_name","surface pressure")?;
     var.put_attribute("units","Pa")?;
+
+    trace!("Adding surface elevation");
+    let mut var = fd_out.add_variable::<f32>("surface_z",
+					     &["line","snot","pn"])?;
+    var.set_fill_value(f32::NAN)?;
+    var.put(surface_z.view(),(..,..,..))?;
+    var.put_attribute("long_name","altitude of surface (elevation)")?;
+    var.put_attribute("units","m")?;
 
     trace!("Adding temperature error");
     let mut var = fd_out.add_variable::<f32>("temperature_error",
