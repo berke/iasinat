@@ -8,7 +8,7 @@ edition = "2024"
 authors = ["Berke DURAK <bd@exhrd.fr>"]
 description = "Reader for IASI NAT L1C and L2 files"
 repository = "https://github.com/ExH-R-D/iasinat"
-license = "MIT or Apache-2.0"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 
 [workspace.dependencies]
