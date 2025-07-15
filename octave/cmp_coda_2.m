@@ -14,11 +14,14 @@ lon2=dat2.EARTH_LOCATION(2,:,:)(:);
 st1=dat1.surface_temperature;
 st2=dat2.SURFACE_TEMPERATURE;
 
+sz1=dat1.surface_z;
+sz2=dat2.SURFACE_Z;
+
 global plot_nr;
 global plot_nc;
 global plot_iplot;
 
-plot_nr=3;plot_nc=1;plot_iplot=0;
+plot_nr=2;plot_nc=2;plot_iplot=0;
 
 function next_plot()
   global plot_nr;
@@ -48,3 +51,8 @@ next_plot;
 hist([st1(:)(istgood1),st2(:)(istgood2)],30);
 legend(["iasinat";"CODA"]);
 title("Surface temperature");
+
+next_plot;
+hist([sz1(:)(istgood1),sz2(:)(istgood2)],30);
+legend(["iasinat";"CODA"]);
+title("Elevation");
