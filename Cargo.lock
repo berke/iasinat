@@ -61,9 +61,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "circfp"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90eda36fe61b4c746c5f509ae2eef6030eac8fdda56a0fe4d14049c902134c8b"
+checksum = "2aed29705122fc0097f65dbf67aac1b2afc4ef8c763f19eab7a458a0215c1fc0"
 dependencies = [
  "anyhow",
  "nalgebra",
@@ -201,12 +201,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "iasinat-lib"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fc87bd9aaf429625457c253d57aafd307dba24a73978a4571f0b656aaaed853"
+dependencies = [
+ "anyhow",
+ "log",
+ "ndarray",
+ "regex",
+ "tofas",
+]
+
+[[package]]
 name = "iasinat-tool"
 version = "0.1.2"
 dependencies = [
  "anyhow",
  "circfp",
- "iasinat-lib",
+ "iasinat-lib 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log",
  "ndarray",
  "netcdf",
