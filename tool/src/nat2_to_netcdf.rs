@@ -13,13 +13,9 @@ Mandatory arguments
 Optional arguments
 ==================
 
-Footprint generation
---------------------
---fp-params  Add footprint geometries (ellipse parameters)
---fp-points  N
-             Add footprint polygons (sample ellipses at N points)
---hca-ifov   RADIANS
-	     Half cone-angle of the iFOVs"
+",
+      #[cfg(feature="footprints")]
+      footprints::HELP
     ]
 }
 

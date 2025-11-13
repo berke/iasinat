@@ -29,7 +29,11 @@ floats.
 
 --raw-radiances
 	 Create a radiance_raw variable containing the unconverted
-	 16-bit signed integer values."]
+	 16-bit signed integer values.",
+
+      #[cfg(feature="footprints")]
+      footprints::HELP
+    ]
 }
 
 pub const CMD : Subcommand = Subcommand {
@@ -47,6 +51,9 @@ pub fn run(mut args:Arguments)->Result<()> {
     let ichan1 = args.opt_value_from_str("--ichan1")?.unwrap_or(NBR_IASI);
 
     let raw_radiances = args.contains("--raw-radiances");
+
+    #[cfg(feature="footprints")]
+    let fpp = FootprintProcessor::from_args(&mut args)?;
 
     finish_args(args)?;
 
@@ -204,6 +211,19 @@ pub fn run(mut args:Arguments)->Result<()> {
 	var.put_attribute("units","-")?;
 	var.put_attribute("long_name","raw spectral radiance [GS1cSpect]")?;
 	var.put(rads_raw.view(),(..,..,..,..))?;
+    }
+
+    #[cfg(feature="footprints")]
+    if fpp.active() {
+	let fps = fpp.compute(nline,|iline,j,i| {
+	    let lon = lon[[iline,j,i]] as f64;
+	    let lat = lat[[iline,j,i]] as f64;
+	    let oza = iza[[iline,j,i]] as f64;
+	    let oaz = iaa[[iline,j,i]] as f64;
+	    (ObservationAngles { lon,lat,oza,oaz },esds[iline])
+	})?;
+
+	fpp.add_to_dataset(&mut fd_out,&fps)?;
     }
 
     trace!("Adding wavenumber");

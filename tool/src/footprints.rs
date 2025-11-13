@@ -23,6 +23,15 @@ pub struct Footprints {
     lons:Array4<f32>
 }
 
+pub const HELP : &'static str = "\n\
+Footprint generation
+--------------------
+--fp-params  Add footprint geometries (ellipse parameters)
+--fp-points  N
+             Add footprint polygons (sample ellipses at N points)
+--hca-ifov   RADIANS
+	     Half cone-angle of the iFOVs";
+
 impl FootprintProcessor {
     pub fn from_args(args:&mut Arguments)->Result<Self> {
 	let params = args.contains("--fp-params");
