@@ -601,7 +601,7 @@ fn run(mut args:Arguments)->Result<()> {
 	    trace!("Adding footprint ellipses");
 	    fd_out.add_dimension("fpell",nfpell)?;
 
-	    let mut var = fd_out.add_variable::<f64>(
+	    let mut var = fd_out.add_variable::<f32>(
 		"fp_ell",
 		&["line","snot","pn","fpell"])?;
 	    var.set_fill_value(f32::NAN)?;
@@ -615,7 +615,7 @@ fn run(mut args:Arguments)->Result<()> {
 	    trace!("Adding footprint polygons");
 	    fd_out.add_dimension("fpvertex",fp_points)?;
 
-	    let mut var = fd_out.add_variable::<f64>(
+	    let mut var = fd_out.add_variable::<f32>(
 		"fp_lat",
 		&["line","snot","pn","fpvertex"])?;
 	    var.set_fill_value(f32::NAN)?;
@@ -624,7 +624,7 @@ fn run(mut args:Arguments)->Result<()> {
 			      "footprint vertex latitude")?;
 	    var.put_attribute("units","degrees_north")?;
 
-	    let mut var = fd_out.add_variable::<f64>(
+	    let mut var = fd_out.add_variable::<f32>(
 		"fp_lon",
 		&["line","snot","pn","fpvertex"])?;
 	    var.set_fill_value(f32::NAN)?;
