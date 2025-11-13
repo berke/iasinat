@@ -34,3 +34,4 @@ pub const HUIT : usize = 8;
 pub const DIX : usize = 10;
 
 pub const OMEGA_EARTH : f64 = 7.2921154e-5; // Earth ang. vel. [rad/s] - sidereal
+pub const HCA_IFOV : f64 = 7.325e-3; // [rad]

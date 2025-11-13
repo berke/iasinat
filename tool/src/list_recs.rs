@@ -1,13 +1,18 @@
 use super::*;
 
+fn help()->&'static [&'static str] {
+    &["\
+Mandatory arguments
+===================
+--input	IN.nat
+	Path of input IASI NAT file (L1C or L2)"]
+}
+
 pub const CMD : Subcommand = Subcommand {
     name:"list-recs",
     synopsis:"Lists the records of a NAT file",
     run,
-    help:"\
-    Mandatory arguments:
-       --input  IN.nat
-		Path of input IASI NAT file (L1C or L2)"
+    help
 };
 
 fn run(mut args:Arguments)->Result<()> {

@@ -1,35 +1,42 @@
 use super::*;
 
+fn help()->&'static [&'static str] {
+    &["\
+Mandatory arguments
+===================
+--input  IN.nat
+	 Path of input IASI L1C file in native (NAT) format
+--output OUT.nc
+	 Path of output netCDF file
+  
+Optional arguments
+==================
+
+Channel selection
+-----------------
+By default, all measurement channels will be included in the output.
+This can be restricted using the following options:
+--ichan0 CH
+	 Zero-based index of beginning of IASI channel range
+--ichan1 CH
+	 Zero-based index of end of IASI channel range (exclusive)
+
+Raw radiances
+-------------
+Radiances are converted to physical units by applying the scaling
+factors contained in the GIADR record and stored as single-precision
+floats.
+
+--raw-radiances
+	 Create a radiance_raw variable containing the unconverted
+	 16-bit signed integer values."]
+}
+
 pub const CMD : Subcommand = Subcommand {
     name:"nat1c-to-netcdf",
     synopsis:"Converts a IASI L1C NAT file to a NetCDF file",
     run,
-    help:"\
-    Mandatory arguments:
-        --input  IN.nat
-                 Path of input IASI L1C file in native (NAT) format
-        --output OUT.nc
-                 Path of output netCDF file
-  
-     Optional arguments:
-        Channel selection
-  
-        By default, all measurement channels will be included in the output.
-        This can be restricted using the following options:
-        --ichan0 CH
-                 Zero-based index of beginning of IASI channel range
-        --ichan1 CH
-                 Zero-based index of end of IASI channel range (exclusive)
-
-	Raw radiances
-
-        Radiances are converted to physical units by applying the scaling
-        factors contained in the GIADR record and stored as single-precision
-        floats.
-
-        --raw-radiances
-                 Create a radiance_raw variable containing the unconverted
-                 16-bit signed integer values."
+    help
 };
 
 pub fn run(mut args:Arguments)->Result<()> {

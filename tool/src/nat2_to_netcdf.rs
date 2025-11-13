@@ -1,20 +1,54 @@
 use super::*;
 
+const DEGREE : f64 = std::f64::consts::PI/180.0;
+
+fn help()->&'static [&'static str] {
+    &["\
+Mandatory arguments
+===================
+--input      IN.nat
+	     Path of input IASI L1C file in native (NAT) format
+--output     OUT.nc
+	     Path of output netCDF file",
+      #[cfg(feature="footprints")]
+      "\n\
+Optional arguments
+==================
+
+Footprint generation
+--------------------
+--fp-params  Add footprint geometries (ellipse parameters)
+--fp-points  N
+             Add footprint polygons (sample ellipses at N points)
+--hca-ifov   RADIANS
+	     Half cone-angle of the iFOVs"
+    ]
+}
+
 pub const CMD : Subcommand = Subcommand {
     name:"nat2-to-netcdf",
     synopsis:"Converts a IASI L2 NAT file to a NetCDF file",
     run,
-    help:"\
-    Mandatory arguments:
-	--input  IN.nat
-		 Path of input IASI L1C file in native (NAT) format
-	--output OUT.nc
-		 Path of output netCDF file"
+    help
 };
     
 fn run(mut args:Arguments)->Result<()> {
     let input_path : OsString = args.value_from_str("--input")?;
     let output_path : OsString = args.value_from_str("--output")?;
+
+    #[cfg(feature="footprints")]
+    let fp_params = args.contains("--fp-params");
+
+    #[cfg(feature="footprints")]
+    let fp_points : usize = args.opt_value_from_str("--fp-points")?
+	.unwrap_or(0);
+
+    #[cfg(feature="footprints")]
+    let footprints = fp_params || fp_points > 0;
+
+    #[cfg(feature="footprints")]
+    let hca_ifov = args.opt_value_from_str("--hca-ifov")?
+	.unwrap_or(HCA_IFOV);
 
     finish_args(args)?;
 
@@ -70,7 +104,14 @@ fn run(mut args:Arguments)->Result<()> {
     let mut errw : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerrw));
     let mut erro : Array4<f32> = Array4::zeros((nline,SNOT,PN,nerro));
 
+    let iang_sza = 0;
+    let iang_iza = 1;
+    let iang_saz = 2;
+    let iang_iaz = 3;
     let nang = 4;
+
+    let ieloc_lat = 0;
+    let ieloc_lon = 1;
     let nloc = 2;
     
     let mut ang : Array4<f32> = Array4::zeros((nline,SNOT,PN,nang));
@@ -228,7 +269,8 @@ fn run(mut args:Arguments)->Result<()> {
 				   temperature profiles are given")?;
     var.put_attribute("units","Pa")?;
 
-    let mut var = fd_out.add_variable::<f64>("pressure_levels_humidity",&["nlt"])?;
+    let mut var = fd_out.add_variable::<f64>("pressure_levels_humidity",
+					     &["nlt"])?;
     var.put_values(&giadr.contents.pressure_levels_humidity[..],..)?;
     var.put_attribute("long_name","pressure levels on which retrieved \
 				   humidity profiles are given")?;
@@ -447,7 +489,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut var = fd_out.add_variable::<f32>("solar_zenith",
 					     &["line","snot","pn"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(ang.slice(s![..,..,..,0])
+    var.put(ang.slice(s![..,..,..,iang_sza])
 	    .as_standard_layout()
 	    .view(),
 	    (..,..,..))?;
@@ -458,7 +500,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut var = fd_out.add_variable::<f32>("satellite_zenith",
 					     &["line","snot","pn"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(ang.slice(s![..,..,..,1])
+    var.put(ang.slice(s![..,..,..,iang_iza])
 	    .as_standard_layout()
 	    .view(),
 	    (..,..,..))?;
@@ -469,7 +511,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut var = fd_out.add_variable::<f32>("solar_azimuth",
 					     &["line","snot","pn"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(ang.slice(s![..,..,..,2])
+    var.put(ang.slice(s![..,..,..,iang_saz])
 	    .as_standard_layout()
 	    .view(),
 	    (..,..,..))?;
@@ -480,7 +522,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut var = fd_out.add_variable::<f32>("satellite_azimuth",
 					     &["line","snot","pn"])?;
     var.set_fill_value(f32::NAN)?;
-    var.put(ang.slice(s![..,..,..,3])
+    var.put(ang.slice(s![..,..,..,iang_iaz])
 	    .as_standard_layout()
 	    .view(),
 	    (..,..,..))?;
@@ -492,7 +534,7 @@ fn run(mut args:Arguments)->Result<()> {
     let mut var = fd_out.add_variable::<f64>("lat",
 					     &["line","snot","pn"])?;
     var.set_fill_value(f64::NAN)?;
-    var.put(eloc.slice(s![..,..,..,0])
+    var.put(eloc.slice(s![..,..,..,ieloc_lat])
 	    .as_standard_layout()
 	    .view(),
 	    (..,..,..))?;
@@ -503,12 +545,95 @@ fn run(mut args:Arguments)->Result<()> {
     let mut var = fd_out.add_variable::<f64>("lon",
 					     &["line","snot","pn"])?;
     var.set_fill_value(f64::NAN)?;
-    var.put(eloc.slice(s![..,..,..,1])
+    var.put(eloc.slice(s![..,..,..,ieloc_lon])
 	    .as_standard_layout()
 	    .view(),
 	    (..,..,..))?;
     var.put_attribute("long_name","longitude")?;
     var.put_attribute("units","degrees_east")?;
+
+    #[cfg(feature="footprints")]
+    if footprints {
+	trace!("Computing footprints");
+	let geo = EllipsoidConverter::new(&WGS84)?;
+	let ifpell_a = 0;
+	let ifpell_b = 1;
+	let ifpell_pa = 2;
+	let nfpell = 3;
+	let mut fpells : Array4<f32> = Array4::zeros((nline,SNOT,PN,nfpell));
+	let mut fp_lats : Array4<f32> = Array4::zeros((nline,SNOT,PN,fp_points));
+	let mut fp_lons : Array4<f32> = Array4::zeros((nline,SNOT,PN,fp_points));
+	for iline in 0..nline {
+	    let alt = scalt[iline] as f64*1e3;
+	    for j in 0..SNOT {
+		for i in 0..PN {
+		    let lon = eloc[[iline,j,i,ieloc_lon]];
+		    let lat = eloc[[iline,j,i,ieloc_lat]];
+		    let iza = ang[[iline,j,i,iang_iza]] as f64;
+		    let iaz = ang[[iline,j,i,iang_iaz]] as f64;
+		    if let Ok(obs) = geo.estimate_observation(lon,lat,
+							      iza,iaz,alt)
+		    {
+			if let Ok(fp) = geo.estimate_footprint(&obs,hca_ifov) {
+			    fpells[[iline,j,i,ifpell_a]] =
+				(fp.a/1e3) as f32;
+			    fpells[[iline,j,i,ifpell_b]] =
+				(fp.b/1e3) as f32;
+			    fpells[[iline,j,i,ifpell_pa]] =
+				(fp.pa/DEGREE) as f32;
+			    if fp_points > 0 {
+				let ol = fp.outline(fp_points)?;
+				for (k,&p) in ol.iter().enumerate() {
+				    let p : [f64;3] = p.into();
+				    let gd : Geodetic360 =
+					geo.geocentric_to_geodetic(&p).into();
+				    fp_lats[[iline,j,i,k]] = gd.lat as f32;
+				    fp_lons[[iline,j,i,k]] = gd.lon as f32;
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+
+	if fp_params {
+	    trace!("Adding footprint ellipses");
+	    fd_out.add_dimension("fpell",nfpell)?;
+
+	    let mut var = fd_out.add_variable::<f64>(
+		"fp_ell",
+		&["line","snot","pn","fpell"])?;
+	    var.set_fill_value(f32::NAN)?;
+	    var.put(fpells.view(),(..,..,..,..))?;
+	    var.put_attribute("long_name",
+			      "footprint ellipse parameters (a,b,pa)")?;
+	    var.put_attribute("units","km,km,degrees_north")?;
+	}
+
+	if fp_points > 0 {
+	    trace!("Adding footprint polygons");
+	    fd_out.add_dimension("fpvertex",fp_points)?;
+
+	    let mut var = fd_out.add_variable::<f64>(
+		"fp_lat",
+		&["line","snot","pn","fpvertex"])?;
+	    var.set_fill_value(f32::NAN)?;
+	    var.put(fp_lats.view(),(..,..,..,..))?;
+	    var.put_attribute("long_name",
+			      "footprint vertex latitude")?;
+	    var.put_attribute("units","degrees_north")?;
+
+	    let mut var = fd_out.add_variable::<f64>(
+		"fp_lon",
+		&["line","snot","pn","fpvertex"])?;
+	    var.set_fill_value(f32::NAN)?;
+	    var.put(fp_lons.view(),(..,..,..,..))?;
+	    var.put_attribute("long_name",
+			      "footprint vertex longitude")?;
+	    var.put_attribute("units","degrees_east")?;
+	}
+    }
 
     trace!("Adding sensing start and end");
     let _ = fd_out.add_attribute("sensing_start_unix",

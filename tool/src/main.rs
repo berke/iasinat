@@ -49,10 +49,19 @@ use nc::{
     Variable
 };
 
+#[cfg(feature="footprints")]
+use circfp::{
+    Geodetic360,
+    EllipsoidConverter,
+    FpEstimator,
+    ObservationEstimator,
+    WGS84
+};
+
 pub struct Subcommand {
     pub name:&'static str,
     pub synopsis:&'static str,
-    pub help:&'static str,
+    pub help:fn()->&'static [&'static str],
     pub run:fn(Arguments)->Result<()>
 }
 
@@ -99,7 +108,9 @@ fn do_help(_args:Arguments,cmd:Option<&Subcommand>)->Result<()> {
 	    println!();
 	    println!("Usage: {} {} ARGUMENTS",progname,name);
 	    println!();
-	    println!("{}",help);
+	    for h in help() {
+		println!("{}",h);
+	    }
 	}
     }
     Ok(())

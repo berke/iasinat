@@ -1,15 +1,20 @@
 use super::*;
 
+fn help()->&'static [&'static str] {
+    &["\
+Mandatory arguments
+===================
+--input-eumetsat IN.nc
+	Path of the EUMETSAT L1C file in NetCDF format
+--input-iasinat IN.nc
+	Path of the iasinat NetCDF file"]
+}
+
 pub const CMD : Subcommand = Subcommand {
     name:"cmp1c-netcdf",
     synopsis:"Compares EUMETSAT L1C NetCDF files with those produced by this tool",
     run,
-    help:"\
-    Mandatory arguments:
-        --input-eumetsat IN.nc
-                 Path of the EUMETSAT L1C file in NetCDF format
-        --input-iasinat IN.nc
-                 Path of the iasinat NetCDF file"
+    help
 };
 
 pub fn run(mut args:Arguments)->Result<()> {

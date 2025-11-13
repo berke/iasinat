@@ -6,16 +6,21 @@ use netcdf_cmp::{
     NetcdfCmp
 };
 
+fn help()->&'static [&'static str] {
+    &["\
+Mandatory arguments
+===================
+--input-eumetsat IN.nc
+	 Path of the EUMETSAT L2 file in NetCDF format
+--input-iasinat IN.nc
+	 Path of the iasinat L2 NetCDF file"]
+}
+
 pub const CMD : Subcommand = Subcommand {
     name:"cmp2-netcdf",
     synopsis:"Compares EUMETSAT L2 NetCDF files with those produced by this tool",
     run,
-    help:"\
-    Mandatory arguments:
-        --input-eumetsat IN.nc
-                 Path of the EUMETSAT L2 file in NetCDF format
-        --input-iasinat IN.nc
-                 Path of the iasinat L2 NetCDF file"
+    help
 };
 
 pub fn run(mut args:Arguments)->Result<()> {
