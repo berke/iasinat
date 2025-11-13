@@ -16,9 +16,12 @@ on the needs of the SWIR-TIR and related projects.
 
 The library can read MPHR, GIADR and MDR records.
 
-This tool is in beta version.  The outputs of this tool have been
-compared, on a small number of NAT files to NetCDF files provided by
-EUMETSAT or converted using CODA.
+This tool is in a beta state, except for footprint generation, which
+is alpha.
+
+The outputs of this tool have been compared on a number of NAT files
+to NetCDF files provided by EUMETSAT or converted using CODA.  SPASCIA
+did some preliminary sanity-checking of the posterior errors.
 
 ### Level 1C
 
@@ -63,11 +66,16 @@ The dependencies of the library are minimal:
 - `ndarray` for handling multi-dimensional arrays
 - `regex` for parsing product header strings
 - `tofas` for Julian date/time conversions
+- `circfp` (optional) for computing elliptical footprints (see below)
 
 The tool uses `netcdf`, `simple_logger` and `pico-args`.
 
 The iasinat code contains no unsafe code, nor does it use unchecked
 operations.
+
+Starting from version 0.2.0, the tool can be compiled with the
+"footprints" feature, which uses `circfp` to compute the elliptical
+footprints.
 
 ## Library usage
 
@@ -75,10 +83,11 @@ For using the library in your Rust project, simply do `cargo add iasinat`
 
 ## Version history
 
-| Version | Date       | Comment         |
-|---------|------------|-----------------|
-| 0.1.0   | 2025-06-30 | Initial release |
-| 0.1.1   | 2025-07-15 | Add surface_z   |
+| Version | Date       | Comment                |
+|---------|------------|------------------------|
+| 0.1.0   | 2025-06-30 | Initial release        |
+| 0.1.1   | 2025-07-15 | Add surface_z          |
+| 0.1.2   | 2025-11-13 | Add footprints feature |
 
 ## Author
 
