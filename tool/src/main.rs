@@ -1,5 +1,9 @@
 mod cmp1c_netcdf;
 mod cmp2_netcdf;
+
+#[cfg(feature="footprints")]
+mod footprints;
+
 mod list_recs;
 mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
@@ -46,17 +50,22 @@ use netcdf as nc;
 
 use nc::{
     AttributeValue,
+    FileMut,
     Variable
 };
 
 #[cfg(feature="footprints")]
 use circfp::{
-    Geodetic360,
     EllipsoidConverter,
     FpEstimator,
+    Geodetic360,
+    ObservationAngles,
     ObservationEstimator,
     WGS84
 };
+
+#[cfg(feature="footprints")]
+use footprints::FootprintProcessor;
 
 pub struct Subcommand {
     pub name:&'static str,
@@ -158,7 +167,7 @@ fn main()->Result<()> {
     }
 }
 
-fn add_metadata(fd_out:&mut nc::FileMut,mphr:&Mphr,subcommand:&str)->Result<()> {
+fn add_metadata(fd_out:&mut FileMut,mphr:&Mphr,subcommand:&str)->Result<()> {
     trace!("Adding metadata");
     let _attr = fd_out.add_attribute("product_name",mphr.product_name.clone())?;
     let _conv_name = fd_out.add_attribute("converter_name",

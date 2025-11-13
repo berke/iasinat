@@ -1,7 +1,5 @@
 use super::*;
 
-const DEGREE : f64 = std::f64::consts::PI/180.0;
-
 fn help()->&'static [&'static str] {
     &["\
 Mandatory arguments
@@ -37,18 +35,7 @@ fn run(mut args:Arguments)->Result<()> {
     let output_path : OsString = args.value_from_str("--output")?;
 
     #[cfg(feature="footprints")]
-    let fp_params = args.contains("--fp-params");
-
-    #[cfg(feature="footprints")]
-    let fp_points : usize = args.opt_value_from_str("--fp-points")?
-	.unwrap_or(0);
-
-    #[cfg(feature="footprints")]
-    let footprints = fp_params || fp_points > 0;
-
-    #[cfg(feature="footprints")]
-    let hca_ifov = args.opt_value_from_str("--hca-ifov")?
-	.unwrap_or(HCA_IFOV);
+    let fpp = FootprintProcessor::from_args(&mut args)?;
 
     finish_args(args)?;
 
@@ -553,86 +540,17 @@ fn run(mut args:Arguments)->Result<()> {
     var.put_attribute("units","degrees_east")?;
 
     #[cfg(feature="footprints")]
-    if footprints {
-	trace!("Computing footprints");
-	let geo = EllipsoidConverter::new(&WGS84)?;
-	let ifpell_a = 0;
-	let ifpell_b = 1;
-	let ifpell_pa = 2;
-	let nfpell = 3;
-	let mut fpells : Array4<f32> = Array4::zeros((nline,SNOT,PN,nfpell));
-	let mut fp_lats : Array4<f32> = Array4::zeros((nline,SNOT,PN,fp_points));
-	let mut fp_lons : Array4<f32> = Array4::zeros((nline,SNOT,PN,fp_points));
-	for iline in 0..nline {
-	    let alt = scalt[iline] as f64*1e3;
-	    for j in 0..SNOT {
-		for i in 0..PN {
-		    let lon = eloc[[iline,j,i,ieloc_lon]];
-		    let lat = eloc[[iline,j,i,ieloc_lat]];
-		    let iza = ang[[iline,j,i,iang_iza]] as f64;
-		    let iaz = ang[[iline,j,i,iang_iaz]] as f64;
-		    if let Ok(obs) = geo.estimate_observation(lon,lat,
-							      iza,iaz,alt)
-		    {
-			if let Ok(fp) = geo.estimate_footprint(&obs,hca_ifov) {
-			    fpells[[iline,j,i,ifpell_a]] =
-				(fp.a/1e3) as f32;
-			    fpells[[iline,j,i,ifpell_b]] =
-				(fp.b/1e3) as f32;
-			    fpells[[iline,j,i,ifpell_pa]] =
-				(fp.pa/DEGREE) as f32;
-			    if fp_points > 0 {
-				let ol = fp.outline(fp_points)?;
-				for (k,&p) in ol.iter().enumerate() {
-				    let p : [f64;3] = p.into();
-				    let gd : Geodetic360 =
-					geo.geocentric_to_geodetic(&p).into();
-				    fp_lats[[iline,j,i,k]] = gd.lat as f32;
-				    fp_lons[[iline,j,i,k]] = gd.lon as f32;
-				}
-			    }
-			}
-		    }
-		}
-	    }
-	}
+    if fpp.active() {
+	let fps = fpp.compute(nline,|iline,j,i| {
+	    let lon = eloc[[iline,j,i,ieloc_lon]];
+	    let lat = eloc[[iline,j,i,ieloc_lat]];
+	    let oza = ang[[iline,j,i,iang_iza]] as f64;
+	    let oaz = ang[[iline,j,i,iang_iaz]] as f64;
+	    (ObservationAngles { lon,lat,oza,oaz },
+	     scalt[iline] as f64*1e3)
+	})?;
 
-	if fp_params {
-	    trace!("Adding footprint ellipses");
-	    fd_out.add_dimension("fpell",nfpell)?;
-
-	    let mut var = fd_out.add_variable::<f32>(
-		"fp_ell",
-		&["line","snot","pn","fpell"])?;
-	    var.set_fill_value(f32::NAN)?;
-	    var.put(fpells.view(),(..,..,..,..))?;
-	    var.put_attribute("long_name",
-			      "footprint ellipse parameters (a,b,pa)")?;
-	    var.put_attribute("units","km,km,degrees_north")?;
-	}
-
-	if fp_points > 0 {
-	    trace!("Adding footprint polygons");
-	    fd_out.add_dimension("fpvertex",fp_points)?;
-
-	    let mut var = fd_out.add_variable::<f32>(
-		"fp_lat",
-		&["line","snot","pn","fpvertex"])?;
-	    var.set_fill_value(f32::NAN)?;
-	    var.put(fp_lats.view(),(..,..,..,..))?;
-	    var.put_attribute("long_name",
-			      "footprint vertex latitude")?;
-	    var.put_attribute("units","degrees_north")?;
-
-	    let mut var = fd_out.add_variable::<f32>(
-		"fp_lon",
-		&["line","snot","pn","fpvertex"])?;
-	    var.set_fill_value(f32::NAN)?;
-	    var.put(fp_lons.view(),(..,..,..,..))?;
-	    var.put_attribute("long_name",
-			      "footprint vertex longitude")?;
-	    var.put_attribute("units","degrees_east")?;
-	}
+	fpp.add_to_dataset(&mut fd_out,&fps)?;
     }
 
     trace!("Adding sensing start and end");
