@@ -107,8 +107,8 @@ pub fn run(mut args:Arguments)->Result<()> {
 	let rad1 = rad1_var.get::<i16,_>((..,..,..))?;
 	let rad2 = rad2_var.get::<i16,_>((..,..,..,..))?;
 
-	if let &[nline,snot,pn,ns2] = rad2.dim().slice() {
-	    if let &[_nalong,_nacross,ns1] = rad1.dim().slice() {
+	if let &[nline,snot,pn,ns2] = rad2.dim().slice()
+	    && let &[_nalong,_nacross,ns1] = rad1.dim().slice() {
 		let tol = 0.0;
 		let rad1 : Array4<i16> = rad1.into_shape_with_order((nline,snot,pn,ns1))?;
 		let rad2 : Array4<i16> = rad2.into_shape_with_order((nline,snot,pn,ns2))?;
@@ -146,7 +146,6 @@ pub fn run(mut args:Arguments)->Result<()> {
 		      nbad,
 		      e_max);
 	    }
-	}
     } else {
 	warn!("Not comparing radiances as radiance_raw is missing");
     }

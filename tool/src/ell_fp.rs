@@ -31,8 +31,12 @@ pub const NFPELL : usize = 3;
 const DEGREE : f64 = std::f64::consts::PI/180.0;
 
 pub struct EllFps {
+    #[allow(unused)]
     pub times:Array3<(f64,f64)>,
+
+    #[allow(unused)]
     pub coords:Array4<f64>,
+
     pub ells:Array4<f32>,
     pub lats:Array4<f32>,
     pub lons:Array4<f32>
@@ -104,20 +108,19 @@ impl EllFpProcessor {
 		    coords[[iline,j,i,IFPCOORD_LAT]] = angles.lat;
 		    times[[iline,j,i]] = time_range;
 		    if let Ok(obs) = geo.estimate_observation(&angles,height)
+			&& let Ok(fp) = geo.estimate_footprint(&obs,self.hca)
 		    {
-			if let Ok(fp) = geo.estimate_footprint(&obs,self.hca) {
-			    ells[[iline,j,i,IFPELL_A]] = (fp.a/1e3) as f32;
-			    ells[[iline,j,i,IFPELL_B]] = (fp.b/1e3) as f32;
-			    ells[[iline,j,i,IFPELL_PA]] = (fp.pa/DEGREE) as f32;
-			    if self.points > 0 {
-				let ol = fp.outline(self.points)?;
-				for (k,&p) in ol.iter().enumerate() {
-				    let p : [f64;3] = p.into();
-				    let gd : Geodetic360 =
-					geo.geocentric_to_geodetic(&p).into();
-				    lats[[iline,j,i,k]] = gd.lat as f32;
-				    lons[[iline,j,i,k]] = gd.lon as f32;
-				}
+			ells[[iline,j,i,IFPELL_A]] = (fp.a/1e3) as f32;
+			ells[[iline,j,i,IFPELL_B]] = (fp.b/1e3) as f32;
+			ells[[iline,j,i,IFPELL_PA]] = (fp.pa/DEGREE) as f32;
+			if self.points > 0 {
+			    let ol = fp.outline(self.points)?;
+			    for (k,&p) in ol.iter().enumerate() {
+				let p : [f64;3] = p.into();
+				let gd : Geodetic360 =
+				    geo.geocentric_to_geodetic(&p).into();
+				lats[[iline,j,i,k]] = gd.lat as f32;
+				lons[[iline,j,i,k]] = gd.lon as f32;
 			    }
 			}
 		    }

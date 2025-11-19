@@ -149,9 +149,9 @@ pub fn run(mut args:Arguments)->Result<()> {
 
     let mphr = nat.mphr();
     info!("Product name: {}",mphr.product_name);
-    let t_start = mphr.sensing_start.to_unix();
-    let t_end = mphr.sensing_end.to_unix();
-    let delta_t = (t_start - t_end)/(nline - 1).max(1) as f64;
+
+    #[cfg(feature="footprints")]
+    let (_t_start,_t_end,delta_t) = utils::mphr_times(mphr,nline);
 
     #[cfg(feature="footprints")]
     let fps =
@@ -257,7 +257,7 @@ pub fn run(mut args:Arguments)->Result<()> {
 
     #[cfg(feature="footprints-mpk")]
     if let Some(fps) = fps {
-	fpp.save_mpk(&fps,&mphr)?;
+	fpp.save_mpk(&fps,mphr)?;
     }
     
     Ok(())

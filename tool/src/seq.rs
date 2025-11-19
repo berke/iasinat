@@ -7,7 +7,7 @@ impl<'a,T> Seq<'a,T> {
     pub fn iter(&self)->SeqIter<'a,T> {
 	match self {
 	    Self::One(x) => SeqIter {
-		top:Some(&x),
+		top:Some(x),
 		stack:Vec::new()
 	    },
 	    Self::Cat(s) => SeqIter {

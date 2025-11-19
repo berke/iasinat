@@ -12,6 +12,7 @@ mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
 mod netcdf_cmp;
 mod seq;
+mod utils;
 
 use std::{
     fmt::{
@@ -71,10 +72,14 @@ use seq::Seq;
 #[cfg(feature="footprints")]
 use ell_fp::{
     EllFpProcessor,
+    PixelInfo,
+};
+
+#[cfg(feature="footprints-mpk")]
+use ell_fp::{
     EllFps,
     IFPCOORD_LON,
     IFPCOORD_LAT,
-    PixelInfo,
 };
 
 #[cfg(feature="footprints-mpk")]
