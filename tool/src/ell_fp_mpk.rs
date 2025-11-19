@@ -45,7 +45,7 @@ pub trait EllFpMpk {
 impl EllFpMpk for EllFps {
     fn save_mpk(&self,mphr:&Mphr,opts:&EllFpMpkOptions)->Result<()> {
 	if let &EllFpMpkOptions { path:Some(ref path),amcut,check } = opts {
-	    let Self { coords,lats,lons,.. } = self;
+	    let Self { times,coords,lats,lons,.. } = self;
 	    let (nline,_,_,npoint) = lats.dim();
 
 	    let mut footprints = Vec::with_capacity(nline);
@@ -94,12 +94,14 @@ impl EllFpMpk for EllFps {
 					 j + 1,
 					 i + 1);
 
+			let time_interval = times[[iline,j,i]];
+
 			let fp = Footprint{
 			    orbit,
 			    id:id.to_string(),
 			    platform:platform.to_string(),
 			    instrument:instrument.to_string(),
-			    time_interval:(0.0,0.0), // xxx
+			    time_interval,
 			    outline
 			};
 			footprints.push(fp);

@@ -4,6 +4,13 @@ use circfp::{
     ObservationAngles
 };
 
+#[derive(Clone,Debug)]
+pub struct PixelInfo {
+    pub time_range:(f64,f64),
+    pub angles:ObservationAngles,
+    pub height:f64,
+}
+
 pub struct EllFpProcessor {
     params:bool,
     points:usize,
@@ -24,6 +31,7 @@ pub const NFPELL : usize = 3;
 const DEGREE : f64 = std::f64::consts::PI/180.0;
 
 pub struct EllFps {
+    pub times:Array3<(f64,f64)>,
     pub coords:Array4<f64>,
     pub ells:Array4<f32>,
     pub lats:Array4<f32>,
@@ -74,20 +82,27 @@ impl EllFpProcessor {
 
     pub fn compute<F>(&self,nline:usize,mut pixel:F)->Result<EllFps>
     where
-	F:FnMut(usize,usize,usize)->(ObservationAngles,f64)
+	F:FnMut(usize,usize,usize)->PixelInfo
     {
 	trace!("Computing footprints");
 	let geo = EllipsoidConverter::new(&WGS84)?;
 	let mut coords : Array4<f64> = Array4::zeros((nline,SNOT,PN,NFPCOORD));
+	let mut times : Array3<(f64,f64)> = Array3::from_elem((nline,SNOT,PN),
+							      (0.0,0.0));
 	let mut ells : Array4<f32> = Array4::zeros((nline,SNOT,PN,NFPELL));
 	let mut lats : Array4<f32> = Array4::zeros((nline,SNOT,PN,self.points));
 	let mut lons : Array4<f32> = Array4::zeros((nline,SNOT,PN,self.points));
 	for iline in 0..nline {
 	    for j in 0..SNOT {
 		for i in 0..PN {
-		    let (angles,height) = pixel(iline,j,i);
+		    let PixelInfo {
+			angles,
+			height,
+			time_range
+		    } = pixel(iline,j,i);
 		    coords[[iline,j,i,IFPCOORD_LON]] = angles.lon;
 		    coords[[iline,j,i,IFPCOORD_LAT]] = angles.lat;
+		    times[[iline,j,i]] = time_range;
 		    if let Ok(obs) = geo.estimate_observation(&angles,height)
 		    {
 			if let Ok(fp) = geo.estimate_footprint(&obs,self.hca) {
@@ -110,6 +125,7 @@ impl EllFpProcessor {
 	    }
 	}
 	Ok(EllFps {
+	    times,
 	    coords,
 	    ells,
 	    lats,

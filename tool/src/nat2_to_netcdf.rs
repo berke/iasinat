@@ -220,6 +220,9 @@ fn run(mut args:Arguments)->Result<()> {
 
     let mphr = nat.mphr();
     info!("Product name: {}",mphr.product_name);
+    let t_start = mphr.sensing_start.to_unix();
+    let t_end = mphr.sensing_end.to_unix();
+    let delta_t = (t_start - t_end)/(nline - 1).max(1) as f64;
 
     #[cfg(feature="footprints")]
     let fps =
@@ -229,8 +232,12 @@ fn run(mut args:Arguments)->Result<()> {
 		let lat = eloc[[iline,j,i,ieloc_lat]];
 		let oza = ang[[iline,j,i,iang_iza]] as f64;
 		let oaz = ang[[iline,j,i,iang_iaz]] as f64;
-		(ObservationAngles { lon,lat,oza,oaz },
-		 scalt[iline] as f64*1e3)
+		let t0 = t_start + iline as f64*delta_t;
+		PixelInfo {
+		    time_range:(t0,t0 + delta_t),
+		    angles:ObservationAngles { lon,lat,oza,oaz },
+		    height:scalt[iline] as f64*1e3
+		}
 	    })?)
 	} else {
 	    None
@@ -552,12 +559,10 @@ fn run(mut args:Arguments)->Result<()> {
 	}
 
 	trace!("Adding sensing start and end");
-	let _ = fd_out.add_attribute("sensing_start_unix",
-				     mphr.sensing_start.to_unix())?;
+	let _ = fd_out.add_attribute("sensing_start_unix",t_start)?;
 	let _ = fd_out.add_attribute("sensing_start_timestamp",
 				     format!("{}",mphr.sensing_start))?;
-	let _ = fd_out.add_attribute("sensing_end_unix",
-				     mphr.sensing_end.to_unix())?;
+	let _ = fd_out.add_attribute("sensing_end_unix",t_end)?;
 	let _ = fd_out.add_attribute("sensing_end_timestamp",
 				     format!("{}",mphr.sensing_end))?;
 

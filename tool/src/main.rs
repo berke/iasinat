@@ -74,6 +74,7 @@ use ell_fp::{
     EllFps,
     IFPCOORD_LON,
     IFPCOORD_LAT,
+    PixelInfo,
 };
 
 #[cfg(feature="footprints-mpk")]

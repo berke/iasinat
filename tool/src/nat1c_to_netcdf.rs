@@ -149,6 +149,9 @@ pub fn run(mut args:Arguments)->Result<()> {
 
     let mphr = nat.mphr();
     info!("Product name: {}",mphr.product_name);
+    let t_start = mphr.sensing_start.to_unix();
+    let t_end = mphr.sensing_end.to_unix();
+    let delta_t = (t_start - t_end)/(nline - 1).max(1) as f64;
 
     #[cfg(feature="footprints")]
     let fps =
@@ -158,7 +161,14 @@ pub fn run(mut args:Arguments)->Result<()> {
 		let lat = lat[[iline,j,i]] as f64;
 		let oza = iza[[iline,j,i]] as f64;
 		let oaz = iaa[[iline,j,i]] as f64;
-		(ObservationAngles { lon,lat,oza,oaz },esds[iline])
+		PixelInfo {
+		    time_range:(
+			t0s[[iline,j]],
+			t0s[[iline,j]] + delta_t
+		    ),
+		    angles:ObservationAngles { lon,lat,oza,oaz },
+		    height:esds[iline]
+		}
 	    })?)
 	} else {
 	    None
