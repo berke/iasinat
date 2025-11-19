@@ -233,10 +233,12 @@ fn run(mut args:Arguments)->Result<()> {
 		let oza = ang[[iline,j,i,iang_iza]] as f64;
 		let oaz = ang[[iline,j,i,iang_iaz]] as f64;
 		let t0 = t_start + iline as f64*delta_t;
+		let height = scalt[iline] as f64*1e3;
+		let r_sat_m = WGS84.a + height; // approximate
 		PixelInfo {
 		    time_range:(t0,t0 + delta_t),
 		    angles:ObservationAngles { lon,lat,oza,oaz },
-		    height:scalt[iline] as f64*1e3
+		    r_sat_m
 		}
 	    })?)
 	} else {

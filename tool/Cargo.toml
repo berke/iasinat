@@ -14,7 +14,7 @@ footprints-mpk = ["footprint","footprints"]
 
 [dependencies]
 # iasinat-lib = { workspace = true }
-iasinat-lib = "0.1.2"
+iasinat-lib = "0.1.4"
 anyhow = { workspace = true }
 tofas = { workspace = true }
 pico-args = "0.5.0"
@@ -22,9 +22,10 @@ simple_logger = { version = "5.0.0", default-features = false }
 log = { workspace = true }
 netcdf = { version = "0.11.0", default-features = false, features = ["ndarray"] }
 ndarray.workspace = true
-circfp = { version = "0.2.0",optional = true }
-# footprint = { version = "0.2.3",optional = true }
-footprint = { path = "../../footprint/fplib",optional = true }
+circfp = { version = "0.2.1",optional = true }
+# circfp = { path = "../../circfp",optional = true }
+footprint = { version = "0.2.4",optional = true }
+# footprint = { path = "../../footprint/fplib",optional = true }
 
 [build-dependencies]
 anyhow = { workspace = true }

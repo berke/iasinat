@@ -95,6 +95,7 @@ For using the library in your Rust project, simply do `cargo add iasinat`
 | 0.1.1   | 2025-07-15 | Add surface_z              |
 | 0.1.2   | 2025-11-13 | Add footprints feature     |
 | 0.1.3   | 2024-11-19 | Add footprints-mpk feature |
+| 0.1.4   | 2024-11-19 | Fix height error           |
 
 ## Author
 

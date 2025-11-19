@@ -6,9 +6,14 @@ use circfp::{
 
 #[derive(Clone,Debug)]
 pub struct PixelInfo {
+    /// Unix timestamps
     pub time_range:(f64,f64),
+
+    /// Observation angles
     pub angles:ObservationAngles,
-    pub height:f64,
+
+    /// Satellite radius in meters
+    pub r_sat_m:f64,
 }
 
 pub struct EllFpProcessor {
@@ -96,18 +101,21 @@ impl EllFpProcessor {
 	let mut ells : Array4<f32> = Array4::zeros((nline,SNOT,PN,NFPELL));
 	let mut lats : Array4<f32> = Array4::zeros((nline,SNOT,PN,self.points));
 	let mut lons : Array4<f32> = Array4::zeros((nline,SNOT,PN,self.points));
+	let mut r_stats = StatEstimator::new();
 	for iline in 0..nline {
 	    for j in 0..SNOT {
 		for i in 0..PN {
 		    let PixelInfo {
 			angles,
-			height,
+			r_sat_m,
 			time_range
 		    } = pixel(iline,j,i);
+		    r_stats.add(r_sat_m);
 		    coords[[iline,j,i,IFPCOORD_LON]] = angles.lon;
 		    coords[[iline,j,i,IFPCOORD_LAT]] = angles.lat;
 		    times[[iline,j,i]] = time_range;
-		    if let Ok(obs) = geo.estimate_observation(&angles,height)
+		    if let Ok(obs) =
+			geo.estimate_observation_from_radius(&angles,r_sat_m)
 			&& let Ok(fp) = geo.estimate_footprint(&obs,self.hca)
 		    {
 			ells[[iline,j,i,IFPELL_A]] = (fp.a/1e3) as f32;
@@ -127,6 +135,7 @@ impl EllFpProcessor {
 		}
 	    }
 	}
+	info!("Satellite radius statistics: {}",r_stats);
 	Ok(EllFps {
 	    times,
 	    coords,

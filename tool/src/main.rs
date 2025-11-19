@@ -12,6 +12,9 @@ mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
 mod netcdf_cmp;
 mod seq;
+
+#[cfg(feature="footprints")]
+mod stats;
 mod utils;
 
 use std::{
@@ -74,6 +77,9 @@ use ell_fp::{
     EllFpProcessor,
     PixelInfo,
 };
+
+#[cfg(feature="footprints")]
+use stats::StatEstimator;
 
 #[cfg(feature="footprints-mpk")]
 use ell_fp::{

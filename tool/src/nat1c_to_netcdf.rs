@@ -161,13 +161,15 @@ pub fn run(mut args:Arguments)->Result<()> {
 		let lat = lat[[iline,j,i]] as f64;
 		let oza = iza[[iline,j,i]] as f64;
 		let oaz = iaa[[iline,j,i]] as f64;
+		let r_sat_m = esds[iline];
+		
 		PixelInfo {
 		    time_range:(
 			t0s[[iline,j]],
 			t0s[[iline,j]] + delta_t
 		    ),
 		    angles:ObservationAngles { lon,lat,oza,oaz },
-		    height:esds[iline]
+		    r_sat_m
 		}
 	    })?)
 	} else {
