@@ -9,34 +9,38 @@ pub struct EllFpProcessor {
     points:usize,
     hca:f64,
     #[cfg(feature="footprints-mpk")]
-    mpk:Option<OsString>
+    mpk_opts:EllFpMpkOptions
 }
 
-const IFPELL_A : usize = 0;
-const IFPELL_B : usize = 1;
-const IFPELL_PA : usize = 2;
-const NFPELL : usize = 3;
+pub const IFPCOORD_LON : usize = 0;
+pub const IFPCOORD_LAT : usize = 1;
+pub const NFPCOORD : usize = 2;
+
+pub const IFPELL_A : usize = 0;
+pub const IFPELL_B : usize = 1;
+pub const IFPELL_PA : usize = 2;
+pub const NFPELL : usize = 3;
 
 const DEGREE : f64 = std::f64::consts::PI/180.0;
 
 pub struct EllFps {
-    ells:Array4<f32>,
-    lats:Array4<f32>,
-    lons:Array4<f32>
+    pub coords:Array4<f64>,
+    pub ells:Array4<f32>,
+    pub lats:Array4<f32>,
+    pub lons:Array4<f32>
 }
 
 pub const HELP : Seq<'static,&'static str> = Seq::Cat(&[
-    &Seq::One(&"\n\
-EllFp generation
---------------------
+    &Seq::One(&"\
+Footprint generation
+====================
 --fp-params  Add footprint geometries (ellipse parameters)
 --fp-points  N
              Add footprint polygons (sample ellipses at N points)
 --hca-ifov   RADIANS
 	     Half cone-angle of the iFOVs"),
     #[cfg(feature="footprints-mpk")]
-    &Seq::One(&"\
-	--mpk PATH   Save footprints in MPK footprint format")
+    &ell_fp_mpk::HELP
 ]);
 
 impl EllFpProcessor {
@@ -45,20 +49,23 @@ impl EllFpProcessor {
 	let points : usize = args.opt_value_from_str("--fp-points")?
 	    .unwrap_or(0);
 	let hca = args.opt_value_from_str("--hca-ifov")?.unwrap_or(HCA_IFOV);
-	let mpk : Option<OsString> = args.opt_value_from_str("--mpk")?;
+
+	#[cfg(feature="footprints-mpk")]
+	let mpk_opts = EllFpMpkOptions::from_args(args)?;
+
 	Ok(Self {
 	    params,
 	    points,
 	    hca,
 
 	    #[cfg(feature="footprints-mpk")]
-	    mpk
+	    mpk_opts
 	})
     }
 
     pub fn active(&self)->bool {
 	#[cfg(feature="footprints-mpk")]
-	let x = self.mpk.is_some();
+	let x = self.mpk_opts.active();
 	#[cfg(not(feature="footprints-mpk"))]
 	let x = false;
 
@@ -71,6 +78,7 @@ impl EllFpProcessor {
     {
 	trace!("Computing footprints");
 	let geo = EllipsoidConverter::new(&WGS84)?;
+	let mut coords : Array4<f64> = Array4::zeros((nline,SNOT,PN,NFPCOORD));
 	let mut ells : Array4<f32> = Array4::zeros((nline,SNOT,PN,NFPELL));
 	let mut lats : Array4<f32> = Array4::zeros((nline,SNOT,PN,self.points));
 	let mut lons : Array4<f32> = Array4::zeros((nline,SNOT,PN,self.points));
@@ -78,6 +86,8 @@ impl EllFpProcessor {
 	    for j in 0..SNOT {
 		for i in 0..PN {
 		    let (angles,height) = pixel(iline,j,i);
+		    coords[[iline,j,i,IFPCOORD_LON]] = angles.lon;
+		    coords[[iline,j,i,IFPCOORD_LAT]] = angles.lat;
 		    if let Ok(obs) = geo.estimate_observation(&angles,height)
 		    {
 			if let Ok(fp) = geo.estimate_footprint(&obs,self.hca) {
@@ -100,6 +110,7 @@ impl EllFpProcessor {
 	    }
 	}
 	Ok(EllFps {
+	    coords,
 	    ells,
 	    lats,
 	    lons
@@ -148,10 +159,7 @@ impl EllFpProcessor {
     }
 
     #[cfg(feature="footprints-mpk")]
-    pub fn save_mpk(&self,fps:&EllFps)->Result<()> {
-	if let Some(path) = &self.mpk {
-	    fps.save_mpk(path)?;
-	}
-	Ok(())
+    pub fn save_mpk(&self,fps:&EllFps,mphr:&Mphr)->Result<()> {
+	fps.save_mpk(mphr,&self.mpk_opts)
     }
 }

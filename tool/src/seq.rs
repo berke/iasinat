@@ -1,5 +1,3 @@
-use super::*;
-
 pub enum Seq<'a,T> {
     One(&'a T),
     Cat(&'a [&'a Self]),

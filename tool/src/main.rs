@@ -21,12 +21,7 @@ use std::{
     },
     fs::File,
     ffi::OsString,
-    io::{
-	BufReader,
-    },
-    path::{
-	Path
-    }
+    io::BufReader,
 };
 
 use anyhow::{
@@ -77,10 +72,15 @@ use seq::Seq;
 use ell_fp::{
     EllFpProcessor,
     EllFps,
+    IFPCOORD_LON,
+    IFPCOORD_LAT,
 };
 
 #[cfg(feature="footprints-mpk")]
-use ell_fp_mpk::EllFpMpk;
+use ell_fp_mpk::{
+    EllFpMpk,
+    EllFpMpkOptions
+};
 
 pub struct Subcommand {
     pub name:&'static str,

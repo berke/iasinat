@@ -14,14 +14,11 @@ Main arguments
 	     Path of output netCDF file.
              If not given, not netCDF output will be created."),
 
-      #[cfg(feature="footprints")]
-      &Seq::One(&"\n\
-Optional arguments
-==================
-
-"),
-      #[cfg(feature="footprints")]
-      &ell_fp::HELP
+	#[cfg(feature="footprints")]
+	&Seq::Cat(&[
+	    &Seq::One(&""),
+	    &ell_fp::HELP
+	])
     ])
 };
     
@@ -569,7 +566,7 @@ fn run(mut args:Arguments)->Result<()> {
 
     #[cfg(feature="footprints-mpk")]
     if let Some(fps) = fps {
-	fpp.save_mpk(&fps)?;
+	fpp.save_mpk(&fps,&mphr)?;
     }
     
     Ok(())
