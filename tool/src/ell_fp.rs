@@ -4,7 +4,7 @@ use circfp::{
     ObservationAngles
 };
 
-pub struct FootprintProcessor {
+pub struct EllFpProcessor {
     params:bool,
     points:usize,
     hca:f64,
@@ -19,7 +19,7 @@ const NFPELL : usize = 3;
 
 const DEGREE : f64 = std::f64::consts::PI/180.0;
 
-pub struct Footprints {
+pub struct EllFps {
     ells:Array4<f32>,
     lats:Array4<f32>,
     lons:Array4<f32>
@@ -27,7 +27,7 @@ pub struct Footprints {
 
 pub const HELP : Seq<'static,&'static str> = Seq::Cat(&[
     &Seq::One(&"\n\
-Footprint generation
+EllFp generation
 --------------------
 --fp-params  Add footprint geometries (ellipse parameters)
 --fp-points  N
@@ -39,7 +39,7 @@ Footprint generation
 	--mpk PATH   Save footprints in MPK footprint format")
 ]);
 
-impl FootprintProcessor {
+impl EllFpProcessor {
     pub fn from_args(args:&mut Arguments)->Result<Self> {
 	let params = args.contains("--fp-params");
 	let points : usize = args.opt_value_from_str("--fp-points")?
@@ -57,10 +57,15 @@ impl FootprintProcessor {
     }
 
     pub fn active(&self)->bool {
-	self.params || self.points > 0
+	#[cfg(feature="footprints-mpk")]
+	let x = self.mpk.is_some();
+	#[cfg(not(feature="footprints-mpk"))]
+	let x = false;
+
+	x || self.params || self.points > 0
     }
 
-    pub fn compute<F>(&self,nline:usize,mut pixel:F)->Result<Footprints>
+    pub fn compute<F>(&self,nline:usize,mut pixel:F)->Result<EllFps>
     where
 	F:FnMut(usize,usize,usize)->(ObservationAngles,f64)
     {
@@ -94,14 +99,14 @@ impl FootprintProcessor {
 		}
 	    }
 	}
-	Ok(Footprints {
+	Ok(EllFps {
 	    ells,
 	    lats,
 	    lons
 	})
     }
 
-    pub fn add_to_dataset(&self,fd_out:&mut FileMut,fps:&Footprints)->Result<()> {
+    pub fn add_to_dataset(&self,fd_out:&mut FileMut,fps:&EllFps)->Result<()> {
 	if self.params {
 	    trace!("Adding footprint ellipses");
 	    fd_out.add_dimension("fpell",NFPELL)?;
@@ -139,6 +144,14 @@ impl FootprintProcessor {
 	    var.put_attribute("units","degrees_east")?;
 	}
 
+	Ok(())
+    }
+
+    #[cfg(feature="footprints-mpk")]
+    pub fn save_mpk(&self,fps:&EllFps)->Result<()> {
+	if let Some(path) = &self.mpk {
+	    fps.save_mpk(path)?;
+	}
 	Ok(())
     }
 }

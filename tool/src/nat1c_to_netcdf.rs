@@ -36,7 +36,7 @@ floats.
 	 16-bit signed integer values."),
 
       #[cfg(feature="footprints")]
-      &footprints::HELP
+      &ell_fp::HELP
     ])
 };
 
@@ -50,7 +50,7 @@ pub fn run(mut args:Arguments)->Result<()> {
     let raw_radiances = args.contains("--raw-radiances");
 
     #[cfg(feature="footprints")]
-    let fpp = FootprintProcessor::from_args(&mut args)?;
+    let fpp = EllFpProcessor::from_args(&mut args)?;
 
     finish_args(args)?;
 
@@ -221,6 +221,9 @@ pub fn run(mut args:Arguments)->Result<()> {
 	})?;
 
 	fpp.add_to_dataset(&mut fd_out,&fps)?;
+
+	#[cfg(feature="footprints-mpk")]
+	fpp.save_mpk(&fps)?;
     }
 
     trace!("Adding wavenumber");

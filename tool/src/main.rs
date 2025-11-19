@@ -1,8 +1,11 @@
 mod cmp1c_netcdf;
 mod cmp2_netcdf;
 
+#[cfg(feature="footprints-mpk")]
+mod ell_fp_mpk;
+
 #[cfg(feature="footprints")]
-mod footprints;
+mod ell_fp;
 
 mod list_recs;
 mod nat1c_to_netcdf;
@@ -71,7 +74,13 @@ use circfp::{
 use seq::Seq;
 
 #[cfg(feature="footprints")]
-use footprints::FootprintProcessor;
+use ell_fp::{
+    EllFpProcessor,
+    EllFps,
+};
+
+#[cfg(feature="footprints-mpk")]
+use ell_fp_mpk::EllFpMpk;
 
 pub struct Subcommand {
     pub name:&'static str,
