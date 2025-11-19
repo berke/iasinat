@@ -13,8 +13,7 @@ footprints = ["circfp"]
 footprints-mpk = ["footprint","footprints"]
 
 [dependencies]
-# iasinat-lib = { workspace = true }
-iasinat-lib = "0.1.4"
+iasinat-lib = { path = "../lib" }
 anyhow = { workspace = true }
 tofas = { workspace = true }
 pico-args = "0.5.0"
