@@ -486,17 +486,6 @@ dependencies = [
 [[package]]
 name = "iasinat-lib"
 version = "0.1.2"
-dependencies = [
- "anyhow",
- "log",
- "ndarray",
- "regex",
- "tofas",
-]
-
-[[package]]
-name = "iasinat-lib"
-version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fc87bd9aaf429625457c253d57aafd307dba24a73978a4571f0b656aaaed853"
 dependencies = [
@@ -508,13 +497,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "iasinat-lib"
+version = "0.1.3"
+dependencies = [
+ "anyhow",
+ "log",
+ "ndarray",
+ "regex",
+ "tofas",
+]
+
+[[package]]
 name = "iasinat-tool"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "circfp",
  "footprint",
- "iasinat-lib 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "iasinat-lib 0.1.2",
  "log",
  "ndarray",
  "netcdf",

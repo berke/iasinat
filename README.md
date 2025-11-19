@@ -67,15 +67,21 @@ The dependencies of the library are minimal:
 - `regex` for parsing product header strings
 - `tofas` for Julian date/time conversions
 - `circfp` (optional) for computing elliptical footprints (see below)
+- `footprint` (optional) for exporting footprints in an MPK format
+  (see below)
 
 The tool uses `netcdf`, `simple_logger` and `pico-args`.
 
 The iasinat code contains no unsafe code, nor does it use unchecked
 operations.
 
-Starting from version 0.2.0, the tool can be compiled with the
+Starting from version 0.1.2, the tool can be compiled with the
 "footprints" feature, which uses `circfp` to compute the elliptical
 footprints.
+
+From version 0.1.3, the tool can be compiled with the "footprints-mpk"
+feature, which enables the footprints to be exported in the MPK format
+used by the `footprint` crate.
 
 ## Library usage
 
@@ -83,11 +89,12 @@ For using the library in your Rust project, simply do `cargo add iasinat`
 
 ## Version history
 
-| Version | Date       | Comment                |
-|---------|------------|------------------------|
-| 0.1.0   | 2025-06-30 | Initial release        |
-| 0.1.1   | 2025-07-15 | Add surface_z          |
-| 0.1.2   | 2025-11-13 | Add footprints feature |
+| Version | Date       | Comment                    |
+|---------|------------|----------------------------|
+| 0.1.0   | 2025-06-30 | Initial release            |
+| 0.1.1   | 2025-07-15 | Add surface_z              |
+| 0.1.2   | 2025-11-13 | Add footprints feature     |
+| 0.1.3   | 2024-11-19 | Add footprints-mpk feature |
 
 ## Author
 
