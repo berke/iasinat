@@ -1,29 +1,27 @@
 use super::*;
 
-fn help()->&'static [&'static str] {
-    &["\
+pub const CMD : Subcommand = Subcommand {
+    name:"nat2-to-netcdf",
+    synopsis:"Converts a IASI L2 NAT file to a NetCDF file",
+    run,
+    help:Seq::Cat(&[
+	&Seq::One(&"\
 Mandatory arguments
 ===================
 --input      IN.nat
 	     Path of input IASI L1C file in native (NAT) format
 --output     OUT.nc
-	     Path of output netCDF file",
+	     Path of output netCDF file"),
+
       #[cfg(feature="footprints")]
-      "\n\
+      &Seq::One(&"\n\
 Optional arguments
 ==================
 
-",
+"),
       #[cfg(feature="footprints")]
-      footprints::HELP
-    ]
-}
-
-pub const CMD : Subcommand = Subcommand {
-    name:"nat2-to-netcdf",
-    synopsis:"Converts a IASI L2 NAT file to a NetCDF file",
-    run,
-    help
+      &footprints::HELP
+    ])
 };
     
 fn run(mut args:Arguments)->Result<()> {

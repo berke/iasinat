@@ -8,6 +8,8 @@ pub struct FootprintProcessor {
     params:bool,
     points:usize,
     hca:f64,
+    #[cfg(feature="footprints-mpk")]
+    mpk:Option<OsString>
 }
 
 const IFPELL_A : usize = 0;
@@ -23,14 +25,19 @@ pub struct Footprints {
     lons:Array4<f32>
 }
 
-pub const HELP : &'static str = "\n\
+pub const HELP : Seq<'static,&'static str> = Seq::Cat(&[
+    &Seq::One(&"\n\
 Footprint generation
 --------------------
 --fp-params  Add footprint geometries (ellipse parameters)
 --fp-points  N
              Add footprint polygons (sample ellipses at N points)
 --hca-ifov   RADIANS
-	     Half cone-angle of the iFOVs";
+	     Half cone-angle of the iFOVs"),
+    #[cfg(feature="footprints-mpk")]
+    &Seq::One(&"\
+	--mpk PATH   Save footprints in MPK footprint format")
+]);
 
 impl FootprintProcessor {
     pub fn from_args(args:&mut Arguments)->Result<Self> {
@@ -38,10 +45,14 @@ impl FootprintProcessor {
 	let points : usize = args.opt_value_from_str("--fp-points")?
 	    .unwrap_or(0);
 	let hca = args.opt_value_from_str("--hca-ifov")?.unwrap_or(HCA_IFOV);
+	let mpk : Option<OsString> = args.opt_value_from_str("--mpk")?;
 	Ok(Self {
 	    params,
 	    points,
-	    hca
+	    hca,
+
+	    #[cfg(feature="footprints-mpk")]
+	    mpk
 	})
     }
 

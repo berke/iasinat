@@ -8,6 +8,7 @@ mod list_recs;
 mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
 mod netcdf_cmp;
+mod seq;
 
 use std::{
     fmt::{
@@ -19,6 +20,9 @@ use std::{
     ffi::OsString,
     io::{
 	BufReader,
+    },
+    path::{
+	Path
     }
 };
 
@@ -64,13 +68,15 @@ use circfp::{
     WGS84
 };
 
+use seq::Seq;
+
 #[cfg(feature="footprints")]
 use footprints::FootprintProcessor;
 
 pub struct Subcommand {
     pub name:&'static str,
     pub synopsis:&'static str,
-    pub help:fn()->&'static [&'static str],
+    pub help:Seq<'static,&'static str>,
     pub run:fn(Arguments)->Result<()>
 }
 
@@ -117,7 +123,7 @@ fn do_help(_args:Arguments,cmd:Option<&Subcommand>)->Result<()> {
 	    println!();
 	    println!("Usage: {} {} ARGUMENTS",progname,name);
 	    println!();
-	    for h in help() {
+	    for h in help.iter() {
 		println!("{}",h);
 	    }
 	}

@@ -1,7 +1,11 @@
 use super::*;
 
-fn help()->&'static [&'static str] {
-    &["\
+pub const CMD : Subcommand = Subcommand {
+    name:"nat1c-to-netcdf",
+    synopsis:"Converts a IASI L1C NAT file to a NetCDF file",
+    run,
+    help:Seq::Cat(&[
+	&Seq::One(&"\
 Mandatory arguments
 ===================
 --input  IN.nat
@@ -29,18 +33,11 @@ floats.
 
 --raw-radiances
 	 Create a radiance_raw variable containing the unconverted
-	 16-bit signed integer values.",
+	 16-bit signed integer values."),
 
       #[cfg(feature="footprints")]
-      footprints::HELP
-    ]
-}
-
-pub const CMD : Subcommand = Subcommand {
-    name:"nat1c-to-netcdf",
-    synopsis:"Converts a IASI L1C NAT file to a NetCDF file",
-    run,
-    help
+      &footprints::HELP
+    ])
 };
 
 pub fn run(mut args:Arguments)->Result<()> {
