@@ -12,6 +12,7 @@ mod nat1c_to_netcdf;
 mod nat2_to_netcdf;
 mod netcdf_cmp;
 mod seq;
+mod show_mphr;
 
 #[cfg(feature="footprints")]
 mod stats;
@@ -107,6 +108,7 @@ const SUBCMDS : &[&Subcommand] = &[
     &list_recs::CMD,
     &nat1c_to_netcdf::CMD,
     &nat2_to_netcdf::CMD,
+    &show_mphr::CMD
 ];
 
 const PROGRAM_NAME : &str = "iasinat by ExH R&D S.A.R.L. <bd@exhrd.fr>";
